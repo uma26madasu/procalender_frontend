@@ -1,34 +1,41 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import fs from 'fs';
+import { fileURLToPath } from 'url';
 
-// Verify file exists
-const entryPath = path.resolve(__dirname, 'src/main.jsx');
-if (!fs.existsSync(entryPath)) {
-  throw new Error(`Entry file not found at ${entryPath}`);
-}
+// Convert import.meta.url to __dirname equivalent
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
-  root: path.resolve(__dirname, '.'), // Absolute path
+  root: path.resolve(__dirname, '.'),
   base: '/',
   plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
-      '~': path.resolve(__dirname, './') // Root alias
-    }
+      'src': path.resolve(__dirname, 'src') // Explicit src alias
+    },
+    extensions: ['.js', '.jsx', '.json', '.ts', '.tsx']
   },
   build: {
     outDir: 'dist',
+    emptyOutDir: true,
     rollupOptions: {
-      input: {
-        main: path.resolve(__dirname, 'index.html')
-      },
+      input: path.resolve(__dirname, 'index.html'),
       output: {
-        entryFileNames: '[name].js',
-        assetFileNames: '[name].[ext]'
+        entryFileNames: `assets/[name].[hash].js`,
+        chunkFileNames: `assets/[name].[hash].js`,
+        assetFileNames: `assets/[name].[hash].[ext]`,
+        manualChunks: {
+          react: ['react', 'react-dom'],
+        }
       }
     }
+  },
+  server: {
+    host: true,
+    port: 3000,
+    strictPort: true,
+    open: true
   }
 });
