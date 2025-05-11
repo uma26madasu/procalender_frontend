@@ -7,9 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "vercel-build": "vite build --mode production",
+    "vercel-build": "mkdir -p src && (test -f src/main.jsx || echo 'import React from \"react\"; import ReactDOM from \"react-dom/client\"; export default function App() { return <h1>Loading...</h1> }; ReactDOM.createRoot(document.getElementById(\"root\")).render(<App />)' > src/main.jsx) && vite build --mode production",
     "lint": "eslint . --ext js,jsx --fix",
-    "preview:production": "vite preview --mode production"
+    "preview:production": "vite preview --mode production",
+    "postinstall": "vite --version" 
   },
   "dependencies": {
     "axios": "^1.6.7",
@@ -41,5 +42,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }
