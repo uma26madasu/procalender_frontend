@@ -1,5 +1,5 @@
 import { Routes, Route } from 'react-router-dom'
-import LoginPage from './pages/loginpPage' // Your existing login page
+import LoginPage from './pages/loginPage' // Your existing login page
 import Dashboard from './pages/Dashboard' // New component to create
 import ProtectedRoute from './components/ProtectedRoute' // For auth protection
 
