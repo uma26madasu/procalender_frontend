@@ -4,12 +4,7 @@ import { resolve } from 'path';
 
 export default defineConfig({
   base: '/',
-  plugins: [react({
-    // Remove emotion config unless you're using it
-    babel: {
-      plugins: [] // Remove emotion plugin if not needed
-    }
-  })],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
@@ -24,17 +19,17 @@ export default defineConfig({
         target: 'https://procalender-backend.onrender.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
-        secure: true // Set to true for production
+        secure: true
       }
     },
     port: 3000,
-    open: false // Disable auto-open in production
+    open: false
   },
   build: {
     outDir: 'dist',
-    sourcemap: false, // Disable for production
+    sourcemap: false,
     minify: 'terser',
-    chunkSizeWarningLimit: 1000, // More conservative limit
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks: (id) => {
@@ -52,7 +47,9 @@ export default defineConfig({
       'react',
       'react-dom',
       'react-router-dom'
-    ],
-    exclude: []
+    ]
+  },
+  define: {
+    global: {}
   }
 });
