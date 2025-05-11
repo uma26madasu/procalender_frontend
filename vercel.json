@@ -8,10 +8,8 @@
       "cleanDistDir": true
     }
   }],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "https://procalender-backend.onrender.com/$1" },
-    { "handle": "filesystem" },
-    { "src": "/assets/(.*)", "dest": "/dist/assets/$1" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
+  "routes": [{
+    "src": "/(.*)",
+    "dest": "/dist/$1"
+  }]
 }
