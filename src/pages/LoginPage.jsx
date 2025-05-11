@@ -4,14 +4,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { ReactComponent as Logo } from '/logo.svg'; // SVG component import
+import logo from '/logo.svg'; // Standard SVG import
 
 // Firebase Configuration
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "YOUR_PROJECT.firebaseapp.com",
   projectId: "YOUR_PROJECT_ID",
-  // Add other Firebase config keys here
+  // Add other configs from Firebase Console
 };
 
 const app = initializeApp(firebaseConfig);
@@ -25,23 +25,17 @@ const schema = z.object({
 });
 
 export default function Login() {
-  const { 
-    register, 
-    handleSubmit, 
-    formState: { errors } 
-  } = useForm({
+  const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
   });
 
   const onSubmit = (data) => {
-    console.log('Login data:', data); // Replace with actual API call
+    console.log('Login data:', data);
   };
 
   const handleGoogleLogin = async () => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      
-      // Send token to backend
       const response = await fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -60,8 +54,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="p-8 bg-white rounded-lg shadow-md w-80">
-        {/* SVG Logo Component */}
-        <Logo className="w-32 h-auto mx-auto mb-6 text-blue-600" />
+        <img src={logo} alt="ProCalendar Logo" className="w-32 mx-auto mb-6" />
         
         <h1 className="text-2xl font-bold text-center text-gray-800 mb-4">
           Welcome to ProCalendar
@@ -70,7 +63,6 @@ export default function Login() {
           Schedule smarter, not harder.
         </p>
         
-        {/* Email/Password Form */}
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="mb-4">
             <label className="block text-gray-700 mb-2">Email</label>
@@ -112,7 +104,6 @@ export default function Login() {
 
         <div className="text-center text-sm text-gray-600 mb-4">OR</div>
         
-        {/* Google OAuth Button */}
         <button
           onClick={handleGoogleLogin}
           className="flex items-center justify-center gap-2 w-full bg-white border border-gray-300 hover:bg-gray-50 py-2 px-4 rounded-md transition duration-200 mb-4"
@@ -125,7 +116,6 @@ export default function Login() {
           Continue with Google
         </button>
 
-        {/* Temporary Dashboard Link */}
         <Link 
           to="/dashboard" 
           className="block text-center text-blue-500 hover:underline"
