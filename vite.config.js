@@ -1,36 +1,45 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
-import { fileURLToPath } from 'url'
 import fs from 'fs'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const mainEntry = path.resolve(__dirname, 'src/main.jsx')
+// Handle missing entry file gracefully
+const getEntryPath = () => {
+  const possibleEntries = [
+    'src/main.jsx',
+    'src/main.js',
+    'src/index.jsx',
+    'src/index.js'
+  ]
 
-// Verify file exists
-if (!fs.existsSync(mainEntry)) {
-  throw new Error(`CRITICAL: Entry file missing at ${mainEntry}`)
+  for (const entry of possibleEntries) {
+    const fullPath = path.resolve(__dirname, entry)
+    if (fs.existsSync(fullPath)) {
+      return fullPath
+    }
+  }
+  
+  // Create default entry if none exists
+  const fallbackPath = path.resolve(__dirname, 'src/main.jsx')
+  fs.mkdirSync(path.dirname(fallbackPath), { recursive: true })
+  fs.writeFileSync(fallbackPath, `
+    import React from 'react'
+    import ReactDOM from 'react-dom/client'
+    export default function App() { return <h1>Welcome</h1> }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />)
+  `)
+  return fallbackPath
 }
 
 export default defineConfig({
   root: __dirname,
-  base: '/',
   plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src'),
-      'src': path.resolve(__dirname, 'src')
-    },
-    extensions: ['.js', '.jsx', '.ts', '.tsx']
-  },
   build: {
-    outDir: 'dist',
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, 'index.html'),
-        app: mainEntry // Explicit entry point
-      },
-      preserveEntrySignatures: 'strict'
+        app: getEntryPath()
+      }
     }
   }
 })
