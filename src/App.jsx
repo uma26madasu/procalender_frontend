@@ -1,23 +1,22 @@
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import LoginPage from './pages/LoginPage';
-import Dashboard from './pages/Dashboard';
-import CreateLink from './pages/CreateLink';
-import PublicScheduler from './pages/PublicScheduler';
-import MeetingViewer from './pages/MeetingViewer';
+import { Routes, Route } from 'react-router-dom'
+import LoginPage from './pages/loginpage' // Your existing login page
+import Dashboard from './pages/Dashboard' // New component to create
+import ProtectedRoute from './components/ProtectedRoute' // For auth protection
 
-function App() {
+export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<LoginPage />} />
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={<LoginPage />} />
+      
+      {/* Protected Routes */}
+      <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/create-link" element={<CreateLink />} />
-        <Route path="/schedule/:linkId" element={<PublicScheduler />} />
-        <Route path="/view/:meetingId" element={<MeetingViewer />} />
-      </Routes>
-    </Router>
-  );
-}
+        {/* Add more protected routes here */}
+      </Route>
 
-export default App;
+      {/* Fallback 404 */}
+      <Route path="*" element={<div>404 Not Found</div>} />
+    </Routes>
+  )
+}
