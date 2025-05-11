@@ -1,31 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <title>ProCalender</title>
+  </head>
   <body>
     <div id="root"></div>
-    <script type="module">
-      // Dynamic entry point loading
-      const entryPoints = [
-        '/src/main.jsx',
-        '/src/main.js',
-        './src/main.jsx',
-        'src/main.jsx'
-      ]
-      
-      const loadScript = (src) => {
-        const script = document.createElement('script')
-        script.type = 'module'
-        script.src = src
-        script.onerror = () => {
-          if (entryPoints.length) {
-            loadScript(entryPoints.shift())
-          } else {
-            document.getElementById('root').innerHTML = 'Application loading failed'
-          }
-        }
-        document.body.appendChild(script)
-      }
-      
-      loadScript(entryPoints.shift())
-    </script>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

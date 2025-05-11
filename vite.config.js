@@ -1,9 +1,15 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
 
 export default defineConfig({
-  base: './',
+  base: '/', // Changed from './' to '/' for proper path resolution
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'), // Add alias for easier imports
+    },
+  },
   server: {
     proxy: {
       '/api': {
@@ -12,5 +18,9 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, '')
       }
     }
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true
   }
 });
