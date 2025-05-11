@@ -5,19 +5,18 @@ import { resolve } from 'path';
 export default defineConfig({
   base: '/',
   plugins: [react({
-    jsxImportSource: '@emotion/react', // Optional: if using CSS-in-JS
+    // Remove emotion config unless you're using it
     babel: {
-      plugins: ['@emotion/babel-plugin'] // Optional: for better Emotion support
+      plugins: [] // Remove emotion plugin if not needed
     }
   })],
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
-      // Add these common aliases if needed
       '@components': resolve(__dirname, 'src/components'),
       '@pages': resolve(__dirname, 'src/pages')
     },
-    extensions: ['.js', '.jsx', '.json'] // Add other extensions if needed
+    extensions: ['.js', '.jsx']
   },
   server: {
     proxy: {
@@ -25,29 +24,25 @@ export default defineConfig({
         target: 'https://procalender-backend.onrender.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
-        secure: false // Only if you're having SSL issues
+        secure: true // Set to true for production
       }
     },
-    port: 3000, // Explicit port
-    open: true // Auto-open browser
+    port: 3000,
+    open: false // Disable auto-open in production
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
-    minify: 'terser', // Better minification
-    chunkSizeWarningLimit: 1600, // Adjust chunk size warning
+    sourcemap: false, // Disable for production
+    minify: 'terser',
+    chunkSizeWarningLimit: 1000, // More conservative limit
     rollupOptions: {
-      external: [
-        'react',
-        'react-dom',
-        'react-router-dom'
-      ],
       output: {
-        manualChunks: {
-          react: ['react', 'react-dom'],
-          router: ['react-router-dom'],
-          firebase: ['firebase'],
-          form: ['react-hook-form', '@hookform/resolvers', 'zod']
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('firebase')) return 'vendor_firebase';
+            if (id.includes('react')) return 'vendor_react';
+            return 'vendor';
+          }
         }
       }
     }
@@ -56,15 +51,8 @@ export default defineConfig({
     include: [
       'react',
       'react-dom',
-      'react-router-dom',
-      'react-hook-form',
-      '@hookform/resolvers',
-      'zod',
-      'firebase'
+      'react-router-dom'
     ],
-    exclude: ['js-big-decimal'] // Exclude problematic packages if any
-  },
-  esbuild: {
-    jsxInject: `import React from 'react'` // Ensure React is available
+    exclude: []
   }
 });
