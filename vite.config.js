@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import terser from 'terser'; // Added for explicit minification
 
 export default defineConfig({
   base: '/',
@@ -11,9 +10,9 @@ export default defineConfig({
       '@': resolve(__dirname, 'src'),
       '@components': resolve(__dirname, 'src/components'),
       '@pages': resolve(__dirname, 'src/pages'),
-      '@assets': resolve(__dirname, 'src/assets') // Added assets alias
+      '@assets': resolve(__dirname, 'src/assets')
     },
-    extensions: ['.js', '.jsx', '.svg'] // Added .svg extension
+    extensions: ['.js', '.jsx', '.svg']
   },
   server: {
     proxy: {
@@ -26,15 +25,15 @@ export default defineConfig({
     },
     port: 3000,
     open: false,
-    host: true // Enable network access
+    host: true
   },
   build: {
     outDir: 'dist',
     sourcemap: false,
     minify: 'terser',
-    terserOptions: { // Explicit terser configuration
+    terserOptions: {
       compress: {
-        drop_console: true, // Remove console logs in production
+        drop_console: true,
         drop_debugger: true
       },
       format: {
@@ -52,7 +51,7 @@ export default defineConfig({
             return 'vendor';
           }
         },
-        assetFileNames: 'assets/[name].[hash].[ext]' // Better asset naming
+        assetFileNames: 'assets/[name].[hash].[ext]'
       }
     }
   },
@@ -69,7 +68,7 @@ export default defineConfig({
   },
   define: {
     global: {},
-    'process.env': process.env // Better environment variable handling
+    'process.env': process.env
   },
   css: {
     postcss: {
