@@ -1,9 +1,10 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+// src/App.jsx
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { auth } from './firebase';
-import LoginPage from './pages/LoginPage'
-import Dashboard from './pages/Dashboard'
-import ProtectedRoute from './components/ProtectedRoute'
+import { auth } from './firebase'; // Updated import path
+import LoginPage from './pages/LoginPage';
+import Dashboard from './pages/Dashboard';
+import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -39,5 +40,5 @@ export default function App() {
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-  )
+  );
 }

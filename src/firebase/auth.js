@@ -5,7 +5,7 @@ import {
   signOut,
   GoogleAuthProvider,
   signInWithPopup  // Optional: For Google login
-} from "./config"; // Adjust path if needed
+} from "."; // Adjust path if needed
 
 // Sign up with email/password
 export const signUp = async (email, password) => {
