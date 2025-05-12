@@ -1,7 +1,7 @@
-import { Routes, Route } from 'react-router-dom'
-import LoginPage from './pages/LoginPage' // Your existing login page
-import Dashboard from './pages/Dashboard' // New component to create
-import ProtectedRoute from './components/ProtectedRoute' // For auth protection
+import { Routes, Route, Navigate } from 'react-router-dom'
+import LoginPage from './pages/LoginPage'
+import Dashboard from './pages/Dashboard'
+import ProtectedRoute from './components/ProtectedRoute'
 
 export default function App() {
   return (
@@ -15,8 +15,8 @@ export default function App() {
         {/* Add more protected routes here */}
       </Route>
 
-      {/* Fallback 404 */}
-      <Route path="*" element={<div>404 Not Found</div>} />
+      {/* Improved Fallback handling */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }
