@@ -8,7 +8,7 @@ const firebaseConfig = {
   // Add other Firebase config keys from your Firebase Console
 };
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+const app = getApps().length ? getApps() : initializeApp(firebaseConfig);
 
 export default app;
 export const auth = getAuth(app);
