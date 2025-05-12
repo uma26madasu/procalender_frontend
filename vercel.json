@@ -6,9 +6,7 @@
       "use": "@vercel/static-build",
       "config": {
         "distDir": "dist",
-        "cleanDistDir": true,
-        "installCommand": "npm install",
-        "buildCommand": "npm run build"
+        "cleanDistDir": true
       }
     }
   ],
@@ -25,11 +23,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html",
-      "status": 200
+      "dest": "/index.html"
     }
-  ],
-  "env": {
-    "VITE_APP_MODE": "production"
-  }
+  ]
 }

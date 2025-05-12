@@ -4,9 +4,8 @@ import { resolve } from 'path';
 import tailwindcss from 'tailwindcss';
 import autoprefixer from 'autoprefixer';
 
-// Explicitly use Vite's built-in terser (no need to import terser package)
 export default defineConfig({
-  base: '/',
+  base: process.env.VERCEL_ENV === 'production' ? '/' : '/', // Vercel-specific base URL
   plugins: [react()],
   resolve: {
     alias: {
@@ -71,7 +70,7 @@ export default defineConfig({
     exclude: ['js-big-decimal']
   },
   define: {
-    'process.env': {}
+    'process.env': process.env // Pass through environment variables
   },
   css: {
     postcss: {
