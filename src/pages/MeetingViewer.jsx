@@ -73,6 +73,43 @@ export default function MeetingViewer() {
     fetchMeetings();
   }, []);
 
+  const updateMeetingStatus = async (meetingId, newStatus) => {
+    try {
+      setLoading(true);
+      
+      const response = await apiService.updateMeetingStatus(meetingId, newStatus);
+      
+      if (response.success) {
+        // Update the meeting in the local state
+        setMeetings(meetings.map(meeting => 
+          meeting.id === meetingId ? { ...meeting, status: newStatus } : meeting
+        ));
+        
+        // Close modal if open
+        if (selectedMeeting && selectedMeeting.id === meetingId) {
+          setSelectedMeeting({ ...selectedMeeting, status: newStatus });
+        }
+      } else {
+        setError(`Failed to ${newStatus === 'canceled' ? 'cancel' : 'update'} meeting. Please try again.`);
+      }
+    } catch (err) {
+      console.error(`Error ${newStatus === 'canceled' ? 'canceling' : 'updating'} meeting:`, err);
+      setError(`Failed to ${newStatus === 'canceled' ? 'cancel' : 'update'} meeting. Please try again.`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cancelMeeting = async (meetingId) => {
+    if (window.confirm('Are you sure you want to cancel this meeting? This will remove it from your calendar and notify the attendee.')) {
+      await updateMeetingStatus(meetingId, 'canceled');
+    }
+  };
+
+  const completeMeeting = async (meetingId) => {
+    await updateMeetingStatus(meetingId, 'completed');
+  };
+
   // Filter meetings based on selected filter
   const filteredMeetings = meetings.filter(meeting => {
     const meetingDate = new Date(meeting.startTime);
@@ -302,11 +339,23 @@ export default function MeetingViewer() {
                 >
                   Close
                 </button>
-                <button
-                  className="px-4 py-2 bg-red-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-red-700"
-                >
-                  Cancel Meeting
-                </button>
+                
+                {selectedMeeting && selectedMeeting.status === 'confirmed' && (
+                  <>
+                    <button
+                      onClick={() => completeMeeting(selectedMeeting.id)}
+                      className="px-4 py-2 bg-green-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-green-700"
+                    >
+                      Mark Completed
+                    </button>
+                    <button
+                      onClick={() => cancelMeeting(selectedMeeting.id)}
+                      className="px-4 py-2 bg-red-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-red-700"
+                    >
+                      Cancel Meeting
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

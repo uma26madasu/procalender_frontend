@@ -1,53 +1,78 @@
-// src/App.jsx
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from './firebase';
-import LoginPage from './pages/LoginPage';
+
+// Pages
+import Login from './pages/Login';
+import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
+import CreateWindow from './pages/CreateWindow';
 import CreateLink from './pages/CreateLink';
 import PublicScheduler from './pages/PublicScheduler';
 import MeetingViewer from './pages/MeetingViewer';
-import ProtectedRoute from './components/ProtectedRoute';
+import GoogleCallback from './pages/GoogleCallback';
 
-export default function App() {
-  const [user, setUser] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
-
-  // Global auth state listener
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      setUser(user);
-      setAuthChecked(true);
-    });
-    return unsubscribe;
-  }, []);
-
-  if (!authChecked) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+// Protected route component
+const ProtectedRoute = ({ children }) => {
+  const [user, loading] = useAuthState(auth);
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
   }
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+};
 
+function App() {
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route 
-        path="/" 
-        element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} 
-      />
-      
-      {/* Public Scheduler (no authentication required) */}
-      <Route path="/schedule/:linkId" element={<PublicScheduler />} />
-      
-      {/* Protected Routes */}
-      <Route element={<ProtectedRoute user={user} />}>
-        <Route path="/dashboard" element={<Dashboard user={user} />} />
-        <Route path="/create-link" element={<CreateLink />} />
-        <Route path="/create-window" element={<CreateWindow />} />
-        <Route path="/meetings" element={<MeetingViewer />} />
-        {/* Add more protected routes here */}
-      </Route>
-
-      {/* Fallback */}
-      <Route path="/auth/google/callback" element={<GoogleCallback />} />
-    </Routes>
+    <Router>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/schedule/:linkId" element={<PublicScheduler />} />
+        
+        {/* OAuth callback */}
+        <Route path="/auth/google/callback" element={<GoogleCallback />} />
+        
+        {/* Protected routes */}
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/create-window" element={
+          <ProtectedRoute>
+            <CreateWindow />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/create-link" element={
+          <ProtectedRoute>
+            <CreateLink />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/meetings" element={
+          <ProtectedRoute>
+            <MeetingViewer />
+          </ProtectedRoute>
+        } />
+        
+        {/* Redirect root to dashboard or login */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Router>
   );
 }
+
+export default App;

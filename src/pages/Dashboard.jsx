@@ -96,6 +96,49 @@ export default function Dashboard({ user }) {
     }
   };
 
+  const handleConnectGoogle = async () => {
+    try {
+      setLoading(true);
+      const response = await apiService.getGoogleAuthUrl();
+      
+      if (response.success) {
+        // Redirect to Google OAuth URL
+        window.location.href = response.url;
+      } else {
+        setError('Failed to generate Google authorization URL');
+      }
+    } catch (err) {
+      console.error('Error connecting to Google:', err);
+      setError('Failed to connect to Google Calendar. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDisconnectGoogle = async () => {
+    try {
+      setLoading(true);
+      const userId = auth.currentUser?.uid;
+      
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+      
+      const response = await apiService.disconnectGoogleCalendar(userId);
+      
+      if (response.success) {
+        setIsGoogleConnected(false);
+      } else {
+        setError('Failed to disconnect Google Calendar');
+      }
+    } catch (err) {
+      console.error('Error disconnecting from Google:', err);
+      setError('Failed to disconnect from Google Calendar. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleConnectHubspot = () => {
     // In a real implementation, this would redirect to HubSpot OAuth flow
     alert('This would redirect to HubSpot OAuth authorization');
@@ -178,11 +221,17 @@ export default function Dashboard({ user }) {
                   </div>
                 </div>
                 {isGoogleConnected ? (
-                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                    Connected
-                  </span>
+                  <button 
+                    onClick={handleDisconnectGoogle}
+                    className="px-3 py-1 bg-red-500 text-white text-sm rounded-md"
+                  >
+                    Disconnect
+                  </button>
                 ) : (
-                  <button className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md">
+                  <button 
+                    onClick={handleConnectGoogle}
+                    className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md"
+                  >
                     Connect
                   </button>
                 )}

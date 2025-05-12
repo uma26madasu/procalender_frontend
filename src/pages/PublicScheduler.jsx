@@ -35,50 +35,27 @@ export default function PublicScheduler() {
     const fetchLinkData = async () => {
       try {
         setLoading(true);
-        // In a real implementation, you would fetch link details first
-        // Then fetch available times based on the link settings
         
-        // Mock data for now - replace with actual API calls
-        // In production, you would do:
-        // const linkDetailsResponse = await apiService.getLinkDetails(linkId);
-        // const availableTimesResponse = await apiService.getAvailableTimes(linkId);
+        // Fetch link details and available times
+        const linkResponse = await apiService.getAvailableTimes(linkId);
         
-        // Mock data
-        setLinkData({
-          meetingName: 'Initial Consultation',
-          meetingLength: 30,
-          questions: [
-            { id: 'q1', label: 'What topics would you like to discuss?' },
-            { id: 'q2', label: 'How did you hear about us?' }
-          ]
-        });
-        
-        // Mock available times - 7 days from now, with 3 slots per day
-        const mockTimes = {};
-        const now = new Date();
-        
-        for (let i = 0; i < 7; i++) {
-          const date = new Date(now);
-          date.setDate(date.getDate() + i + 1);
-          const dateStr = date.toISOString().split('T')[0];
-          
-          mockTimes[dateStr] = [];
-          
-          // Add 3 time slots for each day (9am, 11am, 2pm)
-          for (let hour of [9, 11, 14]) {
-            const timeSlot = new Date(date);
-            timeSlot.setHours(hour, 0, 0, 0);
-            mockTimes[dateStr].push(timeSlot.toISOString());
-          }
+        if (!linkResponse.success) {
+          throw new Error(linkResponse.message || 'Failed to load scheduling data');
         }
         
-        setAvailableTimes(mockTimes);
+        setLinkData({
+          meetingName: linkResponse.meetingName,
+          meetingLength: linkResponse.meetingLength,
+          questions: linkResponse.questions || []
+        });
+        
+        setAvailableTimes(linkResponse.availableTimes);
         
         // Set first date as selected by default if available
-        const dates = Object.keys(mockTimes);
+        const dates = Object.keys(linkResponse.availableTimes);
         if (dates.length > 0) {
           setSelectedDate(dates[0]);
-          setTimesForSelectedDate(mockTimes[dates[0]]);
+          setTimesForSelectedDate(linkResponse.availableTimes[dates[0]]);
         }
       } catch (err) {
         console.error('Error loading scheduler data:', err);
@@ -112,25 +89,20 @@ export default function PublicScheduler() {
       }
       
       const bookingData = {
-        ...data,
-        linkId,
+        name: data.name,
+        email: data.email,
+        linkedinUrl: data.linkedinUrl,
+        selectedTime: data.selectedTime,
         questionAnswers
       };
       
-      // In production, you would call your API:
-      // const response = await apiService.scheduleMeeting(linkId, bookingData);
+      const response = await apiService.scheduleMeeting(linkId, bookingData);
       
-      // Mock successful booking for now
-      const mockResponse = {
-        success: true,
-        booking: {
-          id: 'bk' + Math.random().toString(36).substr(2, 9),
-          startTime: data.selectedTime,
-          endTime: new Date(new Date(data.selectedTime).getTime() + linkData.meetingLength * 60000).toISOString()
-        }
-      };
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to schedule meeting');
+      }
       
-      setBookingDetails(mockResponse.booking);
+      setBookingDetails(response.booking);
       setBookingComplete(true);
     } catch (err) {
       console.error('Error scheduling meeting:', err);
