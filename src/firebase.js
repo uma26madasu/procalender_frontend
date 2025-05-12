@@ -8,6 +8,8 @@ const firebaseConfig = {
   // Add other Firebase config keys from your Firebase Console
 };
 
-const app = initializeApp(firebaseConfig);
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+
+export default app;
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
