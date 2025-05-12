@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import tailwindcss from 'tailwindcss';
+import autoprefixer from 'autoprefixer';
 
 export default defineConfig({
   base: '/',
@@ -30,7 +32,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    minify: 'terser', // Vite will use its built-in terser
+    minify: 'terser',
     terserOptions: {
       compress: {
         drop_console: true,
@@ -72,8 +74,8 @@ export default defineConfig({
   css: {
     postcss: {
       plugins: [
-        require('tailwindcss'),
-        require('autoprefixer')
+        tailwindcss(),
+        autoprefixer()
       ]
     }
   }
