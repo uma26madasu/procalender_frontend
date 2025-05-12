@@ -1,22 +1,10 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import logo from '/logo.svg'; // Standard SVG import
-
-// Firebase Configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyDngn-nNfWDWGjXcDdtO6GiM5xOBQvYil8",
-  authDomain: "pro-calender-uma.firebaseapp.com",
-  projectId: "pro-calender-uma",
-  // Add other configs from Firebase Console
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const googleProvider = new GoogleAuthProvider();
+import { auth, googleProvider } from '../firebase'; // Import from centralized config
+import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+import logo from '/logo.svg';
 
 // Form Validation Schema
 const schema = z.object({
@@ -24,27 +12,29 @@ const schema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-export default function Login() {
-  const { register, handleSubmit, formState: { errors } } = useForm({
+export default function LoginPage() {
+  const navigate = useNavigate();
+  const { 
+    register, 
+    handleSubmit, 
+    formState: { errors, isSubmitting } 
+  } = useForm({
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = (data) => {
-    console.log('Login data:', data);
+  const handleEmailLogin = async ({ email, password }) => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      navigate('/dashboard');
+    } catch (error) {
+      alert(`Login failed: ${error.message}`);
+    }
   };
 
   const handleGoogleLogin = async () => {
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const response = await fetch('/api/auth/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: result.user.accessToken }),
-      });
-
-      if (response.ok) {
-        window.location.href = '/dashboard';
-      }
+      await signInWithPopup(auth, googleProvider);
+      navigate('/dashboard');
     } catch (error) {
       console.error('Google login failed:', error);
       alert('Google login failed. Please try again.');
@@ -53,19 +43,16 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="p-8 bg-white rounded-lg shadow-md w-80">
+      <div className="p-8 bg-white rounded-lg shadow-md w-full max-w-md">
         <img src={logo} alt="ProCalendar Logo" className="w-32 mx-auto mb-6" />
         
         <h1 className="text-2xl font-bold text-center text-gray-800 mb-4">
           Welcome to ProCalendar
         </h1>
-        <p className="text-gray-600 text-center mb-6">
-          Schedule smarter, not harder.
-        </p>
         
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="mb-4">
-            <label className="block text-gray-700 mb-2">Email</label>
+        <form onSubmit={handleSubmit(handleEmailLogin)} className="space-y-4">
+          <div>
+            <label className="block text-gray-700 mb-1">Email</label>
             <input
               {...register('email')}
               type="email"
@@ -73,14 +60,12 @@ export default function Login() {
               placeholder="your@email.com"
             />
             {errors.email && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.email.message}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
             )}
           </div>
 
-          <div className="mb-6">
-            <label className="block text-gray-700 mb-2">Password</label>
+          <div>
+            <label className="block text-gray-700 mb-1">Password</label>
             <input
               {...register('password')}
               type="password"
@@ -88,25 +73,30 @@ export default function Login() {
               placeholder="••••••••"
             />
             {errors.password && (
-              <p className="text-red-500 text-sm mt-1">
-                {errors.password.message}
-              </p>
+              <p className="text-red-500 text-sm mt-1">{errors.password.message}</p>
             )}
           </div>
 
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition duration-200 mb-4"
+            disabled={isSubmitting}
+            className={`w-full bg-blue-600 text-white py-2 px-4 rounded-md transition ${
+              isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-blue-700'
+            }`}
           >
-            Login
+            {isSubmitting ? 'Logging in...' : 'Login'}
           </button>
         </form>
 
-        <div className="text-center text-sm text-gray-600 mb-4">OR</div>
+        <div className="my-4 flex items-center">
+          <div className="flex-grow border-t border-gray-300"></div>
+          <span className="mx-4 text-gray-500">OR</span>
+          <div className="flex-grow border-t border-gray-300"></div>
+        </div>
         
         <button
           onClick={handleGoogleLogin}
-          className="flex items-center justify-center gap-2 w-full bg-white border border-gray-300 hover:bg-gray-50 py-2 px-4 rounded-md transition duration-200 mb-4"
+          className="flex items-center justify-center gap-2 w-full bg-white border border-gray-300 hover:bg-gray-50 py-2 px-4 rounded-md transition"
         >
           <img 
             src="https://www.google.com/favicon.ico" 
@@ -116,12 +106,21 @@ export default function Login() {
           Continue with Google
         </button>
 
-        <Link 
-          to="/dashboard" 
-          className="block text-center text-blue-500 hover:underline"
-        >
-          Go to Dashboard
-        </Link>
+        <div className="mt-6 text-center">
+          <Link 
+            to="/forgot-password" 
+            className="text-blue-500 hover:underline text-sm"
+          >
+            Forgot password?
+          </Link>
+          <span className="mx-2 text-gray-400">•</span>
+          <Link 
+            to="/signup" 
+            className="text-blue-500 hover:underline text-sm"
+          >
+            Create account
+          </Link>
+        </div>
       </div>
     </div>
   );
