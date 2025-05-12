@@ -1,12 +1,7 @@
-// Import Firebase core and services
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";          // For user login/signup
-import { getFirestore } from "firebase/firestore"; // For database (optional)
-// Consider adding these if needed:
-// import { getStorage } from "firebase/storage"; // For file storage
-// import { getAnalytics } from "firebase/analytics"; // For analytics
+import { getAuth, GoogleAuthProvider } from "firebase/auth";  // Added GoogleAuthProvider
+import { getFirestore } from "firebase/firestore";
 
-// Your Firebase config (from Firebase Console)
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -20,14 +15,13 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase services
-export const auth = getAuth(app);       // Authentication
-export const db = getFirestore(app);    // Firestore Database
+// Initialize services
+export const auth = getAuth(app);
+export const db = getFirestore(app);
 
-// Initialize other services as needed (uncomment if required)
-// export const storage = getStorage(app); // Firebase Storage
-// export const analytics = getAnalytics(app); // Analytics
+// Initialize Google Auth Provider
+export const googleProvider = new GoogleAuthProvider();  // Added this line
 
-// Optional: Set persistence for auth if needed
-// import { browserLocalPersistence } from "firebase/auth";
-// setPersistence(auth, browserLocalPersistence);
+// Optional services (uncomment if needed)
+// export const storage = getStorage(app);
+// export const analytics = getAnalytics(app);
