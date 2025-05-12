@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import tailwindcss from 'tailwindcss';
 import autoprefixer from 'autoprefixer';
-import terser from 'terser'; // Explicit terser import
 
+// Explicitly use Vite's built-in terser (no need to import terser package)
 export default defineConfig({
   base: '/',
   plugins: [react()],
@@ -33,22 +33,15 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    minify: 'terser',
+    minify: process.env.NODE_ENV === 'production' ? 'terser' : false,
     terserOptions: {
       compress: {
-        drop_console: true,    // Remove console.logs in production
-        drop_debugger: true,   // Remove debugger statements
-        pure_funcs: ['console.info', 'console.debug'], // Remove specific console methods
-        passes: 2             // More compression passes (default is 1)
+        drop_console: true,
+        drop_debugger: true,
+        pure_funcs: ['console.info', 'console.debug']
       },
       format: {
-        comments: false,      // Remove all comments
-        beautify: false       // Don't beautify output
-      },
-      mangle: {
-        properties: {
-          regex: /^_/         // Mangle properties starting with underscore
-        }
+        comments: false
       }
     },
     chunkSizeWarningLimit: 1000,
