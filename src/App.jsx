@@ -1,17 +1,17 @@
+// src/App.jsx
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from './firebase';
 
 // Pages
-import Login from './pages/Login';
-import Signup from './pages/Signup';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage'; // Assuming you'll create this
 import Dashboard from './pages/Dashboard';
 import CreateWindow from './pages/CreateWindow';
 import CreateLink from './pages/CreateLink';
 import PublicScheduler from './pages/PublicScheduler';
 import MeetingViewer from './pages/MeetingViewer';
 import GoogleCallback from './pages/GoogleCallback';
-
 
 // Protected route component
 const ProtectedRoute = ({ children }) => {
@@ -37,8 +37,8 @@ function App() {
     <Router>
       <Routes>
         {/* Public routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
         <Route path="/schedule/:linkId" element={<PublicScheduler />} />
         
         {/* OAuth callback */}
