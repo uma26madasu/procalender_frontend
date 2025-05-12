@@ -30,7 +30,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
-    minify: 'terser',
+    minify: 'terser', // Vite will use its built-in terser
     terserOptions: {
       compress: {
         drop_console: true,
@@ -67,8 +67,7 @@ export default defineConfig({
     exclude: ['js-big-decimal']
   },
   define: {
-    global: {},
-    'process.env': process.env
+    'process.env': {}
   },
   css: {
     postcss: {
