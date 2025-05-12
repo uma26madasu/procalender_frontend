@@ -8,9 +8,9 @@ import logo from '/logo.svg'; // Standard SVG import
 
 // Firebase Configuration
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
+  apiKey: "AIzaSyDngn-nNfWDWGjXcDdtO6GiM5xOBQvYil8",
+  authDomain: "pro-calender-uma".firebaseapp.com,
+  projectId: "pro-calender-uma",
   // Add other configs from Firebase Console
 };
 

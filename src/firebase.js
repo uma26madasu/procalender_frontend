@@ -2,9 +2,9 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_FIREBASE_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
+  apiKey: "AIzaSyDngn-nNfWDWGjXcDdtO6GiM5xOBQvYil8",
+  authDomain: "pro-calender-uma".firebaseapp.com,
+  projectId: "pro-calender-uma",
   // Add other Firebase config keys from your Firebase Console
 };
 
