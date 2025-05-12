@@ -12,6 +12,7 @@ import PublicScheduler from './pages/PublicScheduler';
 import MeetingViewer from './pages/MeetingViewer';
 import GoogleCallback from './pages/GoogleCallback';
 
+
 // Protected route component
 const ProtectedRoute = ({ children }) => {
   const [user, loading] = useAuthState(auth);

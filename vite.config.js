@@ -45,6 +45,7 @@ export default defineConfig({
     },
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
+      external: ['react-firebase-hooks/auth'], // Add this line to fix the build error
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
@@ -65,7 +66,8 @@ export default defineConfig({
       'react-router-dom',
       'react-hook-form',
       '@hookform/resolvers',
-      'zod'
+      'zod',
+      'react-firebase-hooks' // Add this line to include the dependency for optimization
     ],
     exclude: ['js-big-decimal']
   },
