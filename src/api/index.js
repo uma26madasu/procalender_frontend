@@ -39,5 +39,23 @@ export const apiService = {
       body: JSON.stringify(formData)
     });
     return await response.json();
-  }
+  },
+  // Add to src/api/index.js
+connectGoogleCalendar: async (code, userId) => {
+  const response = await fetch(`${API_BASE}/api/auth/google/callback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code, userId })
+  });
+  return await response.json();
+},
+
+disconnectGoogleCalendar: async (userId) => {
+  const response = await fetch(`${API_BASE}/api/auth/google/revoke`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId })
+  });
+  return await response.json();
+}
 };
