@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import tailwindcss from 'tailwindcss';
 import autoprefixer from 'autoprefixer';
+import terser from 'terser'; // Explicit terser import
 
 export default defineConfig({
   base: '/',
@@ -35,11 +36,19 @@ export default defineConfig({
     minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true,
-        drop_debugger: true
+        drop_console: true,    // Remove console.logs in production
+        drop_debugger: true,   // Remove debugger statements
+        pure_funcs: ['console.info', 'console.debug'], // Remove specific console methods
+        passes: 2             // More compression passes (default is 1)
       },
       format: {
-        comments: false
+        comments: false,      // Remove all comments
+        beautify: false       // Don't beautify output
+      },
+      mangle: {
+        properties: {
+          regex: /^_/         // Mangle properties starting with underscore
+        }
       }
     },
     chunkSizeWarningLimit: 1000,
