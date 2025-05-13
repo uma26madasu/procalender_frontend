@@ -1,8 +1,8 @@
-// In LoginPage.jsx
+// Improved LoginPage.jsx
 import { useState } from 'react';
 import { auth, googleProvider } from '../firebase';
 import { signInWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -14,10 +14,17 @@ export default function LoginPage() {
   // Check if Firebase is initialized
   if (auth === null) {
     return (
-      <div className="login-container error">
-        <h2>Firebase Error</h2>
-        <p>Firebase authentication couldn't be initialized. Please check your configuration.</p>
-        <button onClick={() => window.location.reload()}>Refresh Page</button>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Firebase Error</h2>
+          <p className="mb-4">Firebase authentication couldn't be initialized. Please check your configuration.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="w-full py-2 px-4 bg-blue-600 text-white rounded-md"
+          >
+            Refresh Page
+          </button>
+        </div>
       </div>
     );
   }
@@ -56,31 +63,82 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="login-container">
-      <h2>Login</h2>
-      {error && <p className="error">{error}</p>}
-      <form onSubmit={handleEmailLogin}>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
-          disabled={loading}
-        />
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-          disabled={loading}
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? 'Logging in...' : 'Login with Email'}
-        </button>
-      </form>
-      <button onClick={handleGoogleLogin} disabled={loading}>
-        {loading ? 'Processing...' : 'Login with Google'}
-      </button>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6">
+        <h2 className="text-2xl font-bold text-center text-gray-900 mb-6">Login to ProCalender</h2>
+        
+        {error && (
+          <div className="p-3 mb-4 bg-red-100 text-red-700 rounded-md">
+            {error}
+          </div>
+        )}
+        
+        <form onSubmit={handleEmailLogin} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="Enter your email"
+              disabled={loading}
+              required
+            />
+          </div>
+          
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="Enter your password"
+              disabled={loading}
+              required
+            />
+          </div>
+          
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md shadow-sm disabled:opacity-50"
+          >
+            {loading ? 'Logging in...' : 'Login with Email'}
+          </button>
+        </form>
+        
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Or continue with</span>
+            </div>
+          </div>
+          
+          <button
+            onClick={handleGoogleLogin}
+            disabled={loading}
+            className="mt-4 w-full py-2 px-4 border border-gray-300 rounded-md shadow-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            {loading ? 'Processing...' : 'Login with Google'}
+          </button>
+          
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+                Sign up
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
