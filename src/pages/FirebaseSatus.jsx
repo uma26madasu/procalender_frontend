@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { auth } from '../firebase';
-import { checkDomainAuthorization } from '../utils/debugFirebase';
 
 export default function FirebaseStatus() {
   const [authStatus, setAuthStatus] = useState('Checking...');
@@ -8,9 +7,16 @@ export default function FirebaseStatus() {
   const [firebaseConfig, setFirebaseConfig] = useState({});
   
   useEffect(() => {
-    // Check domain and Firebase status
-    const domainData = checkDomainAuthorization();
-    setDomainInfo(domainData);
+    // Check domain info
+    const currentDomain = window.location.hostname;
+    const protocol = window.location.protocol;
+    const fullURL = window.location.href;
+    
+    setDomainInfo({
+      currentDomain,
+      protocol,
+      fullURL,
+    });
     
     // Check Firebase auth
     if (!auth) {
@@ -49,7 +55,6 @@ export default function FirebaseStatus() {
             <p><strong>Current Domain:</strong> {domainInfo.currentDomain}</p>
             <p><strong>Protocol:</strong> {domainInfo.protocol}</p>
             <p><strong>Full URL:</strong> {domainInfo.fullURL}</p>
-            <p><strong>Is Common Domain:</strong> {domainInfo.isCommonDomain ? 'Yes' : 'No'}</p>
           </div>
         </div>
         

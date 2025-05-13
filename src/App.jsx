@@ -1,3 +1,4 @@
+// src/App.jsx
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -5,6 +6,7 @@ import { auth } from './firebase';
 
 // Pages
 import LoginPage from './pages/LoginPage';
+import DebugPage from './pages/DebugPage';
 import SignupPage from './pages/SignupPage';
 import Dashboard from './pages/Dashboard';
 import CreateWindow from './pages/CreateWindow';
@@ -12,9 +14,6 @@ import CreateLink from './pages/CreateLink';
 import PublicScheduler from './pages/PublicScheduler';
 import MeetingViewer from './pages/MeetingViewer';
 import GoogleCallback from './pages/GoogleCallback';
-import DebugPage from './pages/DebugPage';
-import FirebaseTest from './pages/FirebaseTest';
-import FirebaseStatus from './pages/FirebaseStatus';
 
 // Simple Homepage component
 const HomePage = () => {
@@ -38,6 +37,16 @@ const HomePage = () => {
           >
             Create Account
           </a>
+          
+          {/* Add a debug link that's slightly hidden */}
+          <div className="text-center mt-10">
+            <a 
+              href="/debug" 
+              className="text-xs text-gray-400 hover:text-gray-600"
+            >
+              Debug
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -92,8 +101,7 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/schedule/:linkId" element={<PublicScheduler />} />
-      <Route path="/firebase-test" element={<FirebaseTest />} />
-      <Route path="/firebase-status" element={<FirebaseStatus />} />
+      <Route path="/debug" element={<DebugPage />} />  {/* Add this line for the debug page */}
       
       {/* OAuth callback */}
       <Route path="/auth/google/callback" element={<GoogleCallback />} />
@@ -122,7 +130,6 @@ function App() {
           <MeetingViewer />
         </ProtectedRoute>
       } />
-      <Route path="/debug" element={<DebugPage />} />
     </Routes>
   );
 }

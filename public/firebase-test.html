@@ -3,96 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Firebase Auth Test</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <title>Firebase Domain Test</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; padding: 20px; }
-    .container { max-width: 800px; margin: 0 auto; }
-    .card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    body { font-family: system-ui, sans-serif; line-height: 1.5; max-width: 800px; margin: 0 auto; padding: 20px; }
+    .card { background: #f9fafb; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
     h1 { color: #3b82f6; }
-    button { background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
-    .error { background: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 4px; margin-bottom: 20px; }
-    .success { background: #dcfce7; color: #166534; padding: 10px; border-radius: 4px; margin-bottom: 20px; }
-    pre { background: #f3f4f6; padding: 10px; overflow-x: auto; border-radius: 4px; }
+    pre { background: white; padding: 15px; border-radius: 4px; overflow: auto; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Firebase Authentication Test</h1>
-    
-    <div id="status" class="card">
-      <h2>Firebase Status</h2>
-      <p id="firebase-status">Checking...</p>
-    </div>
-    
-    <div id="domain-info" class="card">
-      <h2>Domain Information</h2>
-      <p><strong>Current Domain:</strong> <span id="current-domain"></span></p>
-      <p><strong>Full URL:</strong> <span id="full-url"></span></p>
-    </div>
-    
-    <div id="result" class="card">
-      <h2>Authentication Result</h2>
-      <div id="auth-result">Not tested yet</div>
-      <button id="login-btn" style="margin-top: 20px;">Test Google Sign-In</button>
-    </div>
+  <h1>Firebase Domain Test</h1>
+  
+  <div class="card">
+    <h2>Current Domain Info</h2>
+    <p><strong>Domain:</strong> <span id="domain"></span></p>
+    <p><strong>Full URL:</strong> <span id="url"></span></p>
+    <p><strong>Needed for Firebase:</strong> Add this domain to Firebase Console → Authentication → Settings → Authorized domains</p>
   </div>
 
   <script>
-    // Initialize Firebase
-    const firebaseConfig = {
-      apiKey: "AIzaSyCYsr6oZ3j-R7nJe6xWaRO6Q5xi0Rk3IV8",
-      authDomain: "procalenderfrontend.firebaseapp.com",
-      projectId: "procalenderfrontend",
-      storageBucket: "procalenderfrontend.firebasestorage.app",
-      messagingSenderId: "302768668350",
-      appId: "1:302768668350:web:b92f80489662289e28e8ef",
-      measurementId: "G-QJWKGJN76S"
-    };
-
-    // Domain info
-    document.getElementById('current-domain').textContent = window.location.hostname;
-    document.getElementById('full-url').textContent = window.location.href;
-
-    // Initialize Firebase
-    try {
-      firebase.initializeApp(firebaseConfig);
-      document.getElementById('firebase-status').textContent = 'Firebase initialized successfully';
-      document.getElementById('firebase-status').className = 'success';
-    } catch (error) {
-      document.getElementById('firebase-status').textContent = 'Firebase initialization failed: ' + error.message;
-      document.getElementById('firebase-status').className = 'error';
-    }
-
-    // Google Sign-in test
-    document.getElementById('login-btn').addEventListener('click', function() {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      
-      firebase.auth().signInWithPopup(provider)
-        .then((result) => {
-          const html = `
-            <div class="success">
-              <p>Sign-in successful!</p>
-              <p>User: ${result.user.displayName} (${result.user.email})</p>
-            </div>
-          `;
-          document.getElementById('auth-result').innerHTML = html;
-        })
-        .catch((error) => {
-          const html = `
-            <div class="error">
-              <p>Sign-in failed!</p>
-              <p>Error code: ${error.code}</p>
-              <p>Error message: ${error.message}</p>
-              ${error.code === 'auth/unauthorized-domain' ? 
-                '<p><strong>This domain needs to be added to Firebase authorized domains</strong></p>' : ''}
-            </div>
-            <pre>${JSON.stringify(error, null, 2)}</pre>
-          `;
-          document.getElementById('auth-result').innerHTML = html;
-        });
-    });
+    // Display domain information
+    document.getElementById('domain').textContent = window.location.hostname;
+    document.getElementById('url').textContent = window.location.href;
   </script>
 </body>
 </html>
