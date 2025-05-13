@@ -14,6 +14,7 @@ import MeetingViewer from './pages/MeetingViewer';
 import GoogleCallback from './pages/GoogleCallback';
 import DebugPage from './pages/DebugPage';
 import FirebaseTest from './pages/FirebaseTest';
+import FirebaseStatus from './pages/FirebaseStatus';
 
 // Simple Homepage component
 const HomePage = () => {
@@ -92,6 +93,7 @@ function App() {
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/schedule/:linkId" element={<PublicScheduler />} />
       <Route path="/firebase-test" element={<FirebaseTest />} />
+      <Route path="/firebase-status" element={<FirebaseStatus />} />
       
       {/* OAuth callback */}
       <Route path="/auth/google/callback" element={<GoogleCallback />} />
