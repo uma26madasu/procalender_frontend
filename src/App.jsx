@@ -1,4 +1,3 @@
-// src/App.jsx
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -83,62 +82,44 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   console.log('App component rendering');
   
-  // Added error handling
-  try {
-    return (
-      <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route path="/schedule/:linkId" element={<PublicScheduler />} />
-        
-        {/* OAuth callback */}
-        <Route path="/auth/google/callback" element={<GoogleCallback />} />
-        
-        {/* Protected routes */}
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/create-window" element={
-          <ProtectedRoute>
-            <CreateWindow />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/create-link" element={
-          <ProtectedRoute>
-            <CreateLink />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/meetings" element={
-          <ProtectedRoute>
-            <MeetingViewer />
-          </ProtectedRoute>
-        } />
-      </Routes>
-    );
-  } catch (error) {
-    console.error('Error in App component:', error);
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
-          <h1 className="text-xl font-bold text-red-600 mb-2">Application Error</h1>
-          <p className="text-gray-700 mb-4">The application encountered an error: {error.message}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Refresh Page
-          </button>
-        </div>
-      </div>
-    );
-  }
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/" element={<HomePage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/schedule/:linkId" element={<PublicScheduler />} />
+      
+      {/* OAuth callback */}
+      <Route path="/auth/google/callback" element={<GoogleCallback />} />
+      
+      {/* Protected routes */}
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <Dashboard />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/create-window" element={
+        <ProtectedRoute>
+          <CreateWindow />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/create-link" element={
+        <ProtectedRoute>
+          <CreateLink />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/meetings" element={
+        <ProtectedRoute>
+          <MeetingViewer />
+        </ProtectedRoute>
+      } />
+      <Route path="/debug" element={<DebugPage />} />
+    </Routes>
+  );
 }
 
 export default App;

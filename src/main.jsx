@@ -1,92 +1,50 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter, useLocation } from 'react-router-dom'
+import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import './index.css'
 
 console.log('Application starting...');
+console.log('Environment check:', {
+  viteApiUrl: import.meta.env.VITE_API_URL ? 'present' : 'missing',
+  viteFirebaseKey: import.meta.env.VITE_FIREBASE_API_KEY ? 'present' : 'missing',
+  reactAppApiUrl: import.meta.env.REACT_APP_API_URL ? 'present' : 'missing',
+  reactAppFirebaseKey: import.meta.env.REACT_APP_FIREBASE_API_KEY ? 'present' : 'missing',
+});
 
-// Create ErrorBoundary component inline
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-  
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-  
-  componentDidCatch(error, errorInfo) {
-    console.error("Error caught by boundary:", error, errorInfo);
-  }
-  
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{padding: '20px', textAlign: 'center'}}>
-          <h1 style={{color: 'red'}}>Something went wrong</h1>
-          <p>{this.state.error?.message || 'Unknown error'}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: 'blue',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              marginTop: '20px'
-            }}
-          >
-            Refresh Page
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
+// Global error handler
+window.addEventListener('error', (event) => {
+  console.error('Global error caught:', event.error);
+  document.getElementById('root').innerHTML = `
+    <div style="max-width: 500px; margin: 50px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+      <h1 style="color: #d00; margin-top: 0;">Application Error</h1>
+      <p>The application encountered an unexpected error:</p>
+      <pre style="background: #f5f5f5; padding: 10px; overflow: auto; border-radius: 4px;">${event.error?.message || 'Unknown error'}</pre>
+      <button onclick="window.location.reload()" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 20px;">Refresh Page</button>
+      <a href="/debug" style="display: inline-block; margin-left: 10px; color: #3b82f6;">View Debug Info</a>
+    </div>
+  `;
+});
 
-const RouterDebugger = () => {
-  const location = useLocation();
-  
-  useEffect(() => {
-    console.log('Route changed to:', location.pathname);
-  }, [location]);
-
-  return null;
-}
-
-// Wrap rendering in a try-catch block
 try {
-  console.log('Starting to render application...');
-  
   const root = ReactDOM.createRoot(document.getElementById('root'));
-  
   root.render(
     <React.StrictMode>
-      <ErrorBoundary>
-        <BrowserRouter basename="/">
-          <RouterDebugger />
-          <App />
-        </BrowserRouter>
-      </ErrorBoundary>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
     </React.StrictMode>
   );
-  
   console.log('Application rendered successfully');
 } catch (error) {
   console.error('Fatal application error:', error);
-  
-  // Show error directly in DOM if rendering fails
   document.getElementById('root').innerHTML = `
-    <div style="padding: 20px; text-align: center; font-family: sans-serif;">
-      <h1 style="color: red;">Application Failed to Load</h1>
-      <p>${error.message}</p>
-      <button onclick="window.location.reload()" style="padding: 8px 16px; background-color: blue; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 20px">
-        Refresh Page
-      </button>
+    <div style="max-width: 500px; margin: 50px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+      <h1 style="color: #d00; margin-top: 0;">Application Failed to Start</h1>
+      <p>The application couldn't be initialized:</p>
+      <pre style="background: #f5f5f5; padding: 10px; overflow: auto; border-radius: 4px;">${error.message}</pre>
+      <button onclick="window.location.reload()" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-top: 20px;">Refresh Page</button>
+      <a href="/debug" style="display: inline-block; margin-left: 10px; color: #3b82f6;">View Debug Info</a>
     </div>
   `;
 }

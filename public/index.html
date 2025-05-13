@@ -3,36 +3,46 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" /> <!-- Added base tag for proper routing -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
     <title>ProCalender</title>
-    <style>
-      body { font-family: Arial, sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; min-height: 100vh; }
-      .container { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; }
-      .card { background-color: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); padding: 20px; width: 100%; max-width: 500px; }
-      h1 { color: #3b82f6; margin-top: 0; }
-      .btn { background-color: #3b82f6; color: white; border: none; border-radius: 4px; padding: 10px 16px; font-size: 16px; cursor: pointer; width: 100%; margin-top: 20px; }
-    </style>
   </head>
   <body>
-    <div class="container">
-      <div class="card">
-        <h1>ProCalender</h1>
-        <p>Welcome to the ProCalender application. If you're seeing this page, it means the application is loading or there might be an issue with the JavaScript bundle.</p>
-        <button class="btn" onclick="window.location.reload()">Refresh Page</button>
-      </div>
-    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Add the debugging script here -->
     <script>
-      console.log('Basic HTML loaded. Checking for React application...');
-      setTimeout(() => {
-        if (document.querySelector('#root').children.length === 0) {
-          console.log('React application not loading. Showing fallback content.');
-          document.querySelector('#root').innerHTML = 
-            `<div style="text-align: center; padding: 20px;">
-              <h2>Application not loading correctly</h2>
-              <p>There might be an issue with the application bundle.</p>
-              <button onclick="window.location.reload()">Try Again</button>
-            </div>`;
-        }
-      }, 5000);
+      // Diagnostic script to help debug blank screen issues
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM content loaded');
+        
+        // Check if React mounted anything
+        setTimeout(() => {
+          const rootEl = document.getElementById('root');
+          if (rootEl && rootEl.childElementCount === 0) {
+            console.error('React did not render anything in the root element after 5 seconds');
+            
+            // Create a diagnostic div
+            const diagnosticDiv = document.createElement('div');
+            diagnosticDiv.style.position = 'fixed';
+            diagnosticDiv.style.top = '0';
+            diagnosticDiv.style.left = '0';
+            diagnosticDiv.style.width = '100%';
+            diagnosticDiv.style.backgroundColor = '#f8d7da';
+            diagnosticDiv.style.color = '#721c24';
+            diagnosticDiv.style.padding = '10px';
+            diagnosticDiv.style.textAlign = 'center';
+            diagnosticDiv.style.zIndex = '9999';
+            diagnosticDiv.innerHTML = `
+              <p>React failed to render. <a href="/debug" style="color: blue; text-decoration: underline;">View debug page</a> or 
+              <button onclick="window.location.reload()" style="background: blue; color: white; border: none; padding: 5px 10px; cursor: pointer;">Refresh</button></p>
+            `;
+            
+            document.body.prepend(diagnosticDiv);
+          }
+        }, 5000);
+      });
     </script>
   </body>
 </html>
