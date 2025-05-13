@@ -42,6 +42,30 @@ try {
   console.error('Firebase initialization error:', error.message);
 }
 
+// Add the signInWithGoogle function
+const signInWithGoogle = async () => {
+  if (!auth || !googleProvider) {
+    console.error('Firebase auth or Google provider not initialized');
+    throw new Error('Authentication service not available');
+  }
+
+  try {
+    console.log('Attempting Google sign-in');
+    const result = await signInWithPopup(auth, googleProvider);
+    console.log('Google sign-in successful');
+    return result.user;
+  } catch (error) {
+    console.error('Google sign-in error:', error.code, error.message);
+    
+    // Check for unauthorized domain error
+    if (error.code === 'auth/unauthorized-domain') {
+      console.error('Domain not authorized in Firebase. Current domain:', window.location.hostname);
+    }
+    
+    throw error;
+  }
+};
+
 export {
   auth,
   db,
@@ -50,5 +74,6 @@ export {
   createUserWithEmailAndPassword,
   signInWithPopup,
   signOut,
-  GoogleAuthProvider
+  GoogleAuthProvider,
+  signInWithGoogle  // Add this export
 };
