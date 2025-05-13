@@ -12,6 +12,7 @@ import CreateLink from './pages/CreateLink';
 import PublicScheduler from './pages/PublicScheduler';
 import MeetingViewer from './pages/MeetingViewer';
 import GoogleCallback from './pages/GoogleCallback';
+import DebugPage from './pages/DebugPage';
 
 // Simple Homepage component
 const HomePage = () => {

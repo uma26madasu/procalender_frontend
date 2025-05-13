@@ -1,48 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <base href="/" /> <!-- Added base tag for proper routing -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
-    <title>ProCalender</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-    
-    <!-- Add the debugging script here -->
-    <script>
-      // Diagnostic script to help debug blank screen issues
-      document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM content loaded');
-        
-        // Check if React mounted anything
-        setTimeout(() => {
-          const rootEl = document.getElementById('root');
-          if (rootEl && rootEl.childElementCount === 0) {
-            console.error('React did not render anything in the root element after 5 seconds');
-            
-            // Create a diagnostic div
-            const diagnosticDiv = document.createElement('div');
-            diagnosticDiv.style.position = 'fixed';
-            diagnosticDiv.style.top = '0';
-            diagnosticDiv.style.left = '0';
-            diagnosticDiv.style.width = '100%';
-            diagnosticDiv.style.backgroundColor = '#f8d7da';
-            diagnosticDiv.style.color = '#721c24';
-            diagnosticDiv.style.padding = '10px';
-            diagnosticDiv.style.textAlign = 'center';
-            diagnosticDiv.style.zIndex = '9999';
-            diagnosticDiv.innerHTML = `
-              <p>React failed to render. <a href="/debug" style="color: blue; text-decoration: underline;">View debug page</a> or 
-              <button onclick="window.location.reload()" style="background: blue; color: white; border: none; padding: 5px 10px; cursor: pointer;">Refresh</button></p>
-            `;
-            
-            document.body.prepend(diagnosticDiv);
-          }
-        }, 5000);
-      });
-    </script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProCalender</title>
+  <script src="/env-config.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .fallback { display: none; padding: 20px; text-align: center; max-width: 600px; margin: 50px auto; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    #root:empty + .fallback { display: block; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <div class="fallback">
+    <h1 style="color: #3b82f6; margin-bottom: 20px;">ProCalender</h1>
+    <p>The application is having trouble loading. This could be due to:</p>
+    <ul style="text-align: left; margin: 20px auto; max-width: 400px; line-height: 1.6;">
+      <li>JavaScript errors during initialization</li>
+      <li>Missing environment variables</li>
+      <li>Network issues with API connections</li>
+    </ul>
+    <div style="margin-top: 20px;">
+      <a href="/debug" style="display: inline-block; background: #3b82f6; color: white; padding: 10px 20px; border-radius: 4px; text-decoration: none; margin-right: 10px;">View Debug Info</a>
+      <button onclick="window.location.reload()" style="background: #f3f4f6; border: 1px solid #d1d5db; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Refresh Page</button>
+    </div>
+  </div>
+  <script>
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        // If React hasn't rendered anything after 3 seconds
+        if (document.getElementById('root').children.length === 0) {
+          console.error('React application failed to render within 3 seconds');
+         
+          // Create a detailed error message in the console
+          console.error('Environment variables check:', {
+            viteApiUrl: typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL ? 'present' : 'missing',
+            viteFirebaseKey: typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_FIREBASE_API_KEY ? 'present' : 'missing'
+          });
+        }
+      }, 3000);
+    });
+  </script>
+ 
+  <script type="module" src="/assets/index-CbVu0U0a.js"></script>
+</body>
 </html>

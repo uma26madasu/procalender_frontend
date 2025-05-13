@@ -1,0 +1,11 @@
+// public/env-config.js
+window.__ENV__ = {
+  VITE_API_URL: 'https://procalender-backend.onrender.com',
+  VITE_FIREBASE_API_KEY: 'AIzaSyCYsr6oZ3j-R7nJe6xWaRO6Q5xi0Rk3IV8',
+  VITE_FIREBASE_AUTH_DOMAIN: 'procalenderfrontend.firebaseapp.com',
+  VITE_FIREBASE_PROJECT_ID: 'procalenderfrontend',
+  VITE_FIREBASE_STORAGE_BUCKET: 'procalenderfrontend.firebasestorage.app',
+  VITE_FIREBASE_MESSAGING_SENDER_ID: '302768668350',
+  VITE_FIREBASE_APP_ID: '1:302768668350:web:b92f80489662289e28e8ef',
+  VITE_FIREBASE_MEASUREMENT_ID: 'G-QJWKGJN76S'
+};
