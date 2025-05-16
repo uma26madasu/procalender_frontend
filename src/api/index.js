@@ -1,169 +1,106 @@
-// API services for ProCalendar application
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
+// src/api/index.js
+const API_BASE = import.meta.env.VITE_API_URL || 'https://procalender-backend.onrender.com';
 
-// Helper function for handling API responses
-const handleResponse = async (response) => {
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const error = new Error(
-      errorData.message || `API Error: ${response.status} ${response.statusText}`
-    );
-    error.status = response.status;
-    error.data = errorData;
-    throw error;
-  }
-  return response.json();
-};
+console.log('API Base URL:', API_BASE);
 
-// General request function with authentication
-const request = async (endpoint, options = {}) => {
-  const token = localStorage.getItem('token');
-  
-  const defaultHeaders = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-
-  const config = {
-    ...options,
-    headers: {
-      ...defaultHeaders,
-      ...options.headers,
-    },
-  };
-
-  try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    return await handleResponse(response);
-  } catch (error) {
-    console.error('API Request Error:', error);
-    throw error;
-  }
-};
-
-// Authentication API
-export const authAPI = {
-  login: (credentials) => 
-    request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    }),
-    
-  register: (userData) => 
-    request('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(userData),
-    }),
-    
-  verifyToken: () => 
-    request('/auth/verify'),
-    
-  logout: () => {
-    localStorage.removeItem('token');
-    return Promise.resolve();
-  }
-};
-
-// Meetings API
-export const meetingsAPI = {
-  getAll: (filters = {}) => {
-    const queryParams = new URLSearchParams();
-    
-    // Add filters to query params
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        queryParams.append(key, value);
-      }
-    });
-    
-    const queryString = queryParams.toString();
-    return request(`/meetings${queryString ? `?${queryString}` : ''}`);
+// Mock implementations for development - replace with actual API calls later
+export const apiService = {
+  // Auth and Users
+  createUser: async (userData) => {
+    console.log('API call: createUser', userData);
+    return { success: true, userId: 'mock-user-id' };
   },
   
-  getById: (id) => 
-    request(`/meetings/${id}`),
+  // Google Calendar OAuth
+  getGoogleAuthUrl: async () => {
+    console.log('API call: getGoogleAuthUrl');
+    return { 
+      success: true, 
+      url: 'https://accounts.google.com/o/oauth2/auth?client_id=mock-client-id&redirect_uri=http://localhost:3000/auth/google/callback&scope=https://www.googleapis.com/auth/calendar&response_type=code' 
+    };
+  },
+  
+  connectGoogleCalendar: async (code, userId) => {
+    console.log('API call: connectGoogleCalendar', { code, userId });
+    return { success: true };
+  },
+  
+  disconnectGoogleCalendar: async (userId) => {
+    console.log('API call: disconnectGoogleCalendar', userId);
+    return { success: true };
+  },
+  
+  // Availability Windows
+  createWindow: async (windowData) => {
+    console.log('API call: createWindow', windowData);
+    return { success: true, windowId: 'mock-window-id' };
+  },
+  
+  // Scheduling Links
+  createLink: async (linkData) => {
+    console.log('API call: createLink', linkData);
+    return { 
+      success: true, 
+      linkId: 'mock-link-id',
+      linkUrl: `https://procalender-frontend.vercel.app/schedule/mock-link-id` 
+    };
+  },
+  
+  // Meetings
+  getAvailableTimes: async (linkId) => {
+    console.log('API call: getAvailableTimes', linkId);
+    // Generate some mock available times
+    const today = new Date();
+    const availableTimes = {};
     
-  create: (meetingData) => 
-    request('/meetings', {
-      method: 'POST',
-      body: JSON.stringify(meetingData),
-    }),
+    // Add times for the next 7 days
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      // Add time slots from 9 AM to 5 PM
+      const times = [];
+      for (let hour = 9; hour < 17; hour++) {
+        const time = new Date(date);
+        time.setHours(hour, 0, 0);
+        times.push(time.toISOString());
+      }
+      
+      availableTimes[dateStr] = times;
+    }
     
-  update: (id, meetingData) => 
-    request(`/meetings/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(meetingData),
-    }),
-    
-  delete: (id) => 
-    request(`/meetings/${id}`, {
-      method: 'DELETE',
-    }),
-    
-  getAvailability: (date) => 
-    request(`/meetings/availability?date=${date}`),
+    return {
+      success: true,
+      meetingName: 'Mock Meeting',
+      meetingLength: 30,
+      questions: [{ id: 'q1', label: 'What would you like to discuss?' }],
+      availableTimes
+    };
+  },
+  
+  scheduleMeeting: async (linkId, bookingData) => {
+    console.log('API call: scheduleMeeting', { linkId, bookingData });
+    return {
+      success: true,
+      booking: {
+        id: 'mock-booking-id',
+        startTime: bookingData.selectedTime,
+        endTime: new Date(new Date(bookingData.selectedTime).getTime() + 30 * 60000).toISOString()
+      }
+    };
+  },
+  
+  updateMeetingStatus: async (meetingId, status) => {
+    console.log('API call: updateMeetingStatus', { meetingId, status });
+    return { success: true };
+  },
+  
+  getMeetings: async (userId) => {
+    console.log('API call: getMeetings', userId);
+    return { success: true, meetings: [] };
+  }
 };
 
-// User API
-export const userAPI = {
-  getProfile: () => 
-    request('/users/profile'),
-    
-  updateProfile: (userData) => 
-    request('/users/profile', {
-      method: 'PUT',
-      body: JSON.stringify(userData),
-    }),
-};
-
-// Dashboard API
-export const dashboardAPI = {
-  getStats: () => 
-    request('/dashboard/stats'),
-    
-  getUpcomingMeetings: () => 
-    request('/dashboard/upcoming-meetings'),
-    
-  getRecentLinks: () => 
-    request('/dashboard/recent-links'),
-};
-
-// Analytics API
-export const analyticsAPI = {
-  getProjectStats: () => 
-    request('/analytics/projects'),
-    
-  getTaskStats: () => 
-    request('/analytics/tasks'),
-    
-  getTeamMemberStats: () => 
-    request('/analytics/team'),
-    
-  getActivityLog: () => 
-    request('/analytics/activity'),
-};
-
-// Scheduler API
-export const schedulerAPI = {
-  getAvailableDates: (startDate, endDate) => 
-    request(`/scheduler/available-dates?start=${startDate}&end=${endDate}`),
-    
-  getTimeSlots: (date) => 
-    request(`/scheduler/time-slots?date=${date}`),
-    
-  scheduleAppointment: (appointmentData) => 
-    request('/scheduler/appointments', {
-      method: 'POST',
-      body: JSON.stringify(appointmentData),
-    }),
-};
-
-// Export all APIs
-export default {
-  auth: authAPI,
-  meetings: meetingsAPI,
-  users: userAPI,
-  dashboard: dashboardAPI,
-  analytics: analyticsAPI,
-  scheduler: schedulerAPI,
-};
+// Also export as default for flexibility
+export default apiService;
