@@ -101,6 +101,80 @@ export const apiService = {
     return { success: true, meetings: [] };
   }
 };
+// Add to your existing src/api/index.js file
 
+// LinkedIn OAuth related functions
+export const getLinkedInAuthUrl = async () => {
+  try {
+    // This would connect to your backend to get the OAuth URL
+    // For demo purposes, we're returning a mock response
+    return {
+      success: true,
+      url: "https://www.linkedin.com/oauth/v2/authorization?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=code&scope=r_liteprofile%20r_emailaddress"
+    };
+  } catch (error) {
+    console.error('Error getting LinkedIn auth URL:', error);
+    return { success: false, message: error.message || 'Failed to get LinkedIn auth URL' };
+  }
+};
+
+export const connectLinkedIn = async (code, userId) => {
+  try {
+    // This would connect to your backend to exchange the code for a token
+    // For demo purposes, we're returning a mock response
+    return { success: true };
+  } catch (error) {
+    console.error('Error connecting LinkedIn:', error);
+    return { success: false, message: error.message || 'Failed to connect LinkedIn' };
+  }
+};
+
+export const disconnectLinkedIn = async (userId) => {
+  try {
+    // This would connect to your backend to revoke the token
+    // For demo purposes, we're returning a mock response
+    return { success: true };
+  } catch (error) {
+    console.error('Error disconnecting LinkedIn:', error);
+    return { success: false, message: error.message || 'Failed to disconnect LinkedIn' };
+  }
+};
+
+// GitHub OAuth related functions
+export const getGitHubAuthUrl = async () => {
+  try {
+    // This would connect to your backend to get the OAuth URL
+    // For demo purposes, we're returning a mock response
+    return {
+      success: true,
+      url: "https://github.com/login/oauth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&scope=read:user%20user:email"
+    };
+  } catch (error) {
+    console.error('Error getting GitHub auth URL:', error);
+    return { success: false, message: error.message || 'Failed to get GitHub auth URL' };
+  }
+};
+
+export const connectGitHub = async (code, userId) => {
+  try {
+    // This would connect to your backend to exchange the code for a token
+    // For demo purposes, we're returning a mock response
+    return { success: true };
+  } catch (error) {
+    console.error('Error connecting GitHub:', error);
+    return { success: false, message: error.message || 'Failed to connect GitHub' };
+  }
+};
+
+export const disconnectGitHub = async (userId) => {
+  try {
+    // This would connect to your backend to revoke the token
+    // For demo purposes, we're returning a mock response
+    return { success: true };
+  } catch (error) {
+    console.error('Error disconnecting GitHub:', error);
+    return { success: false, message: error.message || 'Failed to disconnect GitHub' };
+  }
+};
 // Also export as default for flexibility
 export default apiService;

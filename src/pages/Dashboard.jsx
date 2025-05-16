@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { signOut } from 'firebase/auth';
-import { apiService } from '../api';
+import { apiService, getLinkedInAuthUrl, disconnectLinkedIn, getGitHubAuthUrl, disconnectGitHub } from '../api';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -13,7 +13,8 @@ export default function Dashboard() {
   const [links, setLinks] = useState([]);
   const [upcomingMeetings, setUpcomingMeetings] = useState([]);
   const [isGoogleConnected, setIsGoogleConnected] = useState(false);
-  const [isHubspotConnected, setIsHubspotConnected] = useState(false);
+  const [isLinkedInConnected, setIsLinkedInConnected] = useState(false);
+  const [isGitHubConnected, setIsGitHubConnected] = useState(false);
 
   // Fetch user data and schedule information
   useEffect(() => {
@@ -24,7 +25,8 @@ export default function Dashboard() {
         // In a real implementation, you would fetch data from your API
         // For now, initialize with empty arrays to show empty states
         setIsGoogleConnected(false);
-        setIsHubspotConnected(false);
+        setIsLinkedInConnected(false);
+        setIsGitHubConnected(false);
         setWindows([]);
         setLinks([]);
         setUpcomingMeetings([]);
@@ -57,8 +59,14 @@ export default function Dashboard() {
     try {
       setLoading(true);
       // Call your API to get Google OAuth URL
-      // For now, just show a message
-      alert("This would redirect to Google OAuth authorization");
+      const response = await apiService.getGoogleAuthUrl();
+      
+      if (response.success) {
+        // Redirect to Google OAuth URL
+        window.location.href = response.url;
+      } else {
+        setError('Failed to generate Google authorization URL');
+      }
       setLoading(false);
     } catch (err) {
       console.error('Error connecting to Google:', err);
@@ -67,9 +75,116 @@ export default function Dashboard() {
     }
   };
 
-  const handleConnectHubspot = () => {
-    // In a real implementation, this would redirect to HubSpot OAuth flow
-    alert('This would redirect to HubSpot OAuth authorization');
+  const handleDisconnectGoogle = async () => {
+    try {
+      setLoading(true);
+      const userId = auth.currentUser?.uid;
+      
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+      
+      const response = await apiService.disconnectGoogleCalendar(userId);
+      
+      if (response.success) {
+        setIsGoogleConnected(false);
+      } else {
+        setError('Failed to disconnect Google Calendar');
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error('Error disconnecting from Google:', err);
+      setError('Failed to disconnect from Google Calendar. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const handleConnectLinkedIn = async () => {
+    try {
+      setLoading(true);
+      // Call your API to get LinkedIn OAuth URL
+      const response = await getLinkedInAuthUrl();
+      
+      if (response.success) {
+        // Redirect to the LinkedIn OAuth URL
+        window.location.href = response.url;
+      } else {
+        setError('Failed to generate LinkedIn authorization URL');
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error('Error connecting to LinkedIn:', err);
+      setError('Failed to connect to LinkedIn. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const handleDisconnectLinkedIn = async () => {
+    try {
+      setLoading(true);
+      const userId = auth.currentUser?.uid;
+      
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+      
+      const response = await disconnectLinkedIn(userId);
+      
+      if (response.success) {
+        setIsLinkedInConnected(false);
+      } else {
+        setError('Failed to disconnect LinkedIn');
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error('Error disconnecting from LinkedIn:', err);
+      setError('Failed to disconnect from LinkedIn. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const handleConnectGitHub = async () => {
+    try {
+      setLoading(true);
+      // Call your API to get GitHub OAuth URL
+      const response = await getGitHubAuthUrl();
+      
+      if (response.success) {
+        // Redirect to the GitHub OAuth URL
+        window.location.href = response.url;
+      } else {
+        setError('Failed to generate GitHub authorization URL');
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error('Error connecting to GitHub:', err);
+      setError('Failed to connect to GitHub. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const handleDisconnectGitHub = async () => {
+    try {
+      setLoading(true);
+      const userId = auth.currentUser?.uid;
+      
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+      
+      const response = await disconnectGitHub(userId);
+      
+      if (response.success) {
+        setIsGitHubConnected(false);
+      } else {
+        setError('Failed to disconnect GitHub');
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error('Error disconnecting from GitHub:', err);
+      setError('Failed to disconnect from GitHub. Please try again.');
+      setLoading(false);
+    }
   };
 
   // Format date for display
@@ -157,7 +272,7 @@ export default function Dashboard() {
                   Connected Services
                 </dt>
                 <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                  {(isGoogleConnected ? 1 : 0) + (isHubspotConnected ? 1 : 0)}
+                  {(isGoogleConnected ? 1 : 0) + (isLinkedInConnected ? 1 : 0) + (isGitHubConnected ? 1 : 0)}
                 </dd>
               </div>
             </div>
@@ -167,7 +282,8 @@ export default function Dashboard() {
         {/* Connected Services */}
         <section className="mb-10 bg-white p-6 rounded-lg shadow">
           <h2 className="text-xl font-semibold mb-4">Connected Services</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Google Calendar */}
             <div className="border rounded-md p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
@@ -185,6 +301,7 @@ export default function Dashboard() {
                 </div>
                 {isGoogleConnected ? (
                   <button 
+                    onClick={handleDisconnectGoogle}
                     className="px-3 py-1 bg-red-500 text-white text-sm rounded-md"
                   >
                     Disconnect
@@ -200,29 +317,67 @@ export default function Dashboard() {
               </div>
             </div>
             
+            {/* LinkedIn */}
             <div className="border rounded-md p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <div className="w-10 h-10 flex items-center justify-center bg-orange-100 rounded-full mr-3">
-                    <svg className="w-6 h-6 text-orange-600" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 14h-3v-3h3v3zm0-5h-3v-3h3v3zm0-5h-3V4h3v3zm5 10h-3v-3h3v3zm0-5h-3v-3h3v3zm0-5h-3V4h3v3zm5 10h-3v-8h3v8zm0-10h-3V4h3v3z"/>
+                  <div className="w-10 h-10 flex items-center justify-center bg-blue-100 rounded-full mr-3">
+                    <svg className="w-6 h-6 text-blue-700" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
                     </svg>
                   </div>
                   <div>
-                    <h3 className="font-medium">HubSpot CRM</h3>
+                    <h3 className="font-medium">LinkedIn</h3>
                     <p className="text-sm text-gray-500">
-                      {isHubspotConnected ? 'Connected' : 'Not connected'}
+                      {isLinkedInConnected ? 'Connected' : 'Not connected'}
                     </p>
                   </div>
                 </div>
-                {isHubspotConnected ? (
-                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                    Connected
-                  </span>
+                {isLinkedInConnected ? (
+                  <button 
+                    onClick={handleDisconnectLinkedIn}
+                    className="px-3 py-1 bg-red-500 text-white text-sm rounded-md"
+                  >
+                    Disconnect
+                  </button>
                 ) : (
                   <button 
-                    onClick={handleConnectHubspot}
-                    className="px-3 py-1 bg-orange-500 text-white text-sm rounded-md"
+                    onClick={handleConnectLinkedIn}
+                    className="px-3 py-1 bg-blue-700 text-white text-sm rounded-md"
+                  >
+                    Connect
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {/* GitHub */}
+            <div className="border rounded-md p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-10 h-10 flex items-center justify-center bg-gray-100 rounded-full mr-3">
+                    <svg className="w-6 h-6 text-gray-900" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2A10 10 0 0 0 2 12c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V21c0 .27.16.59.67.5C19.14 20.16 22 16.42 22 12A10 10 0 0 0 12 2z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-medium">GitHub</h3>
+                    <p className="text-sm text-gray-500">
+                      {isGitHubConnected ? 'Connected' : 'Not connected'}
+                    </p>
+                  </div>
+                </div>
+                {isGitHubConnected ? (
+                  <button 
+                    onClick={handleDisconnectGitHub}
+                    className="px-3 py-1 bg-red-500 text-white text-sm rounded-md"
+                  >
+                    Disconnect
+                  </button>
+                ) : (
+                  <button 
+                    onClick={handleConnectGitHub}
+                    className="px-3 py-1 bg-gray-800 text-white text-sm rounded-md"
                   >
                     Connect
                   </button>
