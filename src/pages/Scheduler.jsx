@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SchedulerSkeleton, DateSelectionSkeleton, TimeSlotsSkeleton } from from '../components/Skeleton';
+import { SchedulerSkeleton, DateSelectionSkeleton, TimeSlotsSkeleton } from '../components/Skeleton';
 
 // Simulated data fetch function for available time slots
 const fetchAvailability = (date) => {

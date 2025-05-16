@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DashboardSkeleton } from from '../components/Skeleton';
+import { DashboardSkeleton }  from '../components/Skeleton';
 
 // Simulated data fetch function
 const fetchDashboardData = () => {
