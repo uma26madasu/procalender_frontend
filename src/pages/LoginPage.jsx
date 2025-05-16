@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, signInWithGoogle } from '../firebase/auth';
+import { auth, signInWithEmailAndPassword, signInWithGooglePopup } from '../firebase';
 import { LogoIcon } from '../components/Icons';
 
 export default function LoginPage() {
@@ -16,7 +16,7 @@ export default function LoginPage() {
     setError('');
     
     try {
-      await signInWithEmailAndPassword(email, password);
+      await signInWithEmailAndPassword(auth, email, password);
       navigate('/dashboard');
     } catch (err) {
       console.error('Login error:', err);
@@ -31,7 +31,7 @@ export default function LoginPage() {
     setError('');
     
     try {
-      await signInWithGoogle();
+      await signInWithGooglePopup();
       navigate('/dashboard');
     } catch (err) {
       console.error('Google login error:', err);

@@ -6,117 +6,76 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
   signInWithPopup,
-  signOut,
-  connectAuthEmulator
+  signOut
 } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
-import { firebaseConfig, isValidConfig } from "./config";
+import { getFirestore } from "firebase/firestore";
 
-// Logging setup for debugging
-const logPrefix = "[Firebase]";
-const logger = {
-  info: (msg) => console.info(`${logPrefix} ${msg}`),
-  warn: (msg) => console.warn(`${logPrefix} ${msg}`),
-  error: (msg, err) => console.error(`${logPrefix} ${msg}`, err)
+// Firebase configuration - hardcoded for reliability
+const firebaseConfig = {
+  apiKey: "AIzaSyCYsr6oZ3j-R7nJe6xWaRO6Q5xi0Rk3IV8",
+  authDomain: "procalenderfrontend.firebaseapp.com", // This is critical for auth
+  projectId: "procalenderfrontend",
+  storageBucket: "procalenderfrontend.firebasestorage.app",
+  messagingSenderId: "302768668350",
+  appId: "1:302768668350:web:b92f80489662289e28e8ef",
+  measurementId: "G-QJWKGJN76S"
 };
 
-// Create a function to initialize Firebase that can be called safely
-const initializeFirebase = () => {
-  // Check if we have valid configuration
-  if (!isValidConfig) {
-    logger.error("Invalid Firebase configuration. Authentication will not work.");
-    return { auth: null, db: null, googleProvider: null };
-  }
+console.log('Firebase initialization - Current domain:', window.location.hostname);
 
-  logger.info(`Initializing Firebase for domain: ${window.location.hostname}`);
+let app;
+let auth;
+let db;
+let googleProvider;
+
+try {
+  // Initialize Firebase
+  app = initializeApp(firebaseConfig);
+  console.log('Firebase app initialized');
+
+  // Initialize services
+  auth = getAuth(app);
+  db = getFirestore(app);
+  googleProvider = new GoogleAuthProvider();
   
-  try {
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    logger.info("Firebase app initialized successfully");
+  console.log('Firebase services initialized successfully');
+} catch (error) {
+  console.error('Firebase initialization error:', error.message);
+}
 
-    // Initialize Auth
-    const auth = getAuth(app);
-    
-    // Initialize Firestore
-    const db = getFirestore(app);
-    
-    // Setup Google Auth Provider
-    const googleProvider = new GoogleAuthProvider();
-    
-    // In development, use emulators if available
-    if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATORS === "true") {
-      try {
-        connectAuthEmulator(auth, "http://localhost:9099");
-        connectFirestoreEmulator(db, "localhost", 8080);
-        logger.info("Connected to Firebase emulators");
-      } catch (err) {
-        logger.warn("Failed to connect to Firebase emulators", err);
-      }
-    }
-    
-    logger.info("Firebase services initialized successfully");
-    return { auth, db, googleProvider, app };
-  } catch (error) {
-    logger.error("Firebase initialization error", error);
-    return { auth: null, db: null, googleProvider: null, app: null };
-  }
-};
-
-// Initialize the Firebase services
-const { auth, db, googleProvider, app } = initializeFirebase();
-
-// Implement Google Sign-In with robust error handling
-const signInWithGoogle = async () => {
+// Define the Google sign-in function
+const signInWithGooglePopup = async () => {
   if (!auth || !googleProvider) {
-    logger.error('Firebase auth or Google provider not initialized');
-    throw new Error({
-      code: 'auth/service-unavailable',
-      message: 'Authentication service is not available. Please try again later.'
-    });
+    console.error('Firebase auth or Google provider not initialized');
+    throw new Error('Authentication service not available');
   }
 
   try {
-    logger.info('Attempting Google sign-in');
-    // Add select_account to force the account selection prompt
-    googleProvider.setCustomParameters({ prompt: 'select_account' });
+    console.log('Attempting Google sign-in');
     const result = await signInWithPopup(auth, googleProvider);
-    logger.info('Google sign-in successful');
+    console.log('Google sign-in successful');
     return result.user;
   } catch (error) {
-    logger.error('Google sign-in error', error);
+    console.error('Google sign-in error:', error.code, error.message);
     
-    // Enhanced error handling with specific error messages
+    // Check for unauthorized domain error
     if (error.code === 'auth/unauthorized-domain') {
-      logger.error(`Domain not authorized in Firebase: ${window.location.hostname}`);
-      throw new Error({
-        code: error.code,
-        message: `This domain (${window.location.hostname}) is not authorized for Firebase authentication. Please contact the administrator.`
-      });
+      console.error('Domain not authorized in Firebase. Current domain:', window.location.hostname);
     }
     
-    if (error.code === 'auth/popup-closed-by-user') {
-      throw new Error({
-        code: error.code,
-        message: 'Sign-in was cancelled. Please try again.'
-      });
-    }
-    
-    // Throw a more user-friendly error for other cases
     throw error;
   }
 };
 
-// Export all the Firebase services and utilities
 export {
+  app,
   auth,
   db,
   googleProvider,
-  app,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
   signOut,
   GoogleAuthProvider,
-  signInWithGoogle
+  signInWithGooglePopup
 };

@@ -1,12 +1,11 @@
-// src/App.jsx
+// src/App.jsx - Simplified version with SignupPage as default
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from './firebase';
 
 // Pages
 import LoginPage from './pages/LoginPage';
-import DebugPage from './pages/DebugPage';
 import SignupPage from './pages/SignupPage';
 import Dashboard from './pages/Dashboard';
 import CreateWindow from './pages/CreateWindow';
@@ -18,25 +17,6 @@ import GoogleCallback from './pages/GoogleCallback';
 // Protected route component
 const ProtectedRoute = ({ children }) => {
   const [user, loading] = useAuthState(auth);
-  const [authError, setAuthError] = useState(null);
-  
-  useEffect(() => {
-    // Check if Firebase is properly initialized
-    if (auth === null) {
-      setAuthError('Firebase authentication is not initialized. Check your configuration.');
-    }
-  }, []);
-  
-  if (authError) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded max-w-md w-full">
-          <h2 className="font-bold mb-2">Authentication Error</h2>
-          <p>{authError}</p>
-        </div>
-      </div>
-    );
-  }
   
   if (loading) {
     return (
@@ -54,16 +34,20 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
-  console.log('App component rendering');
+  const [user] = useAuthState(auth);
   
   return (
     <Routes>
-      {/* Public routes - Make SignupPage the default landing page */}
-      <Route path="/" element={<SignupPage />} />
+      {/* Make root redirect to signup or dashboard based on auth state */}
+      <Route 
+        path="/" 
+        element={user ? <Navigate to="/dashboard" replace /> : <SignupPage />} 
+      />
+      
+      {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/schedule/:linkId" element={<PublicScheduler />} />
-      <Route path="/debug" element={<DebugPage />} />
       
       {/* OAuth callback */}
       <Route path="/auth/google/callback" element={<GoogleCallback />} />
@@ -92,6 +76,9 @@ function App() {
           <MeetingViewer />
         </ProtectedRoute>
       } />
+      
+      {/* Fallback route */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
