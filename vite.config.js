@@ -5,37 +5,48 @@ import tailwindcss from 'tailwindcss';
 import autoprefixer from 'autoprefixer';
 import fs from 'fs';
 
-// Create a function to generate env-config.js with hardcoded values
-function createEnvConfigFile() {
+// Create a function to generate env-config.js with environment variables
+function createEnvConfigFile(env) {
   const envConfig = `
     window.__ENV__ = {
-      VITE_API_URL: 'https://procalender-backend.onrender.com',
-      VITE_FIREBASE_API_KEY: 'AIzaSyCYsr6oZ3j-R7nJe6xWaRO6Q5xi0Rk3IV8',
-      VITE_FIREBASE_AUTH_DOMAIN: 'procalenderfrontend.firebaseapp.com',
-      VITE_FIREBASE_PROJECT_ID: 'procalenderfrontend',
-      VITE_FIREBASE_STORAGE_BUCKET: 'procalenderfrontend.firebasestorage.app',
-      VITE_FIREBASE_MESSAGING_SENDER_ID: '302768668350',
-      VITE_FIREBASE_APP_ID: '1:302768668350:web:b92f80489662289e28e8ef',
-      VITE_FIREBASE_MEASUREMENT_ID: 'G-QJWKGJN76S'
+      // API URL
+      VITE_API_URL: '${env.VITE_API_URL || 'https://procalender-backend.onrender.com'}',
+      
+      // Firebase configuration
+      VITE_FIREBASE_API_KEY: '${env.VITE_FIREBASE_API_KEY || 'AIzaSyCYsr6oZ3j-R7nJe6xWaRO6Q5xi0Rk3IV8'}',
+      VITE_FIREBASE_AUTH_DOMAIN: '${env.VITE_FIREBASE_AUTH_DOMAIN || 'procalenderfrontend.firebaseapp.com'}',
+      VITE_FIREBASE_PROJECT_ID: '${env.VITE_FIREBASE_PROJECT_ID || 'procalenderfrontend'}',
+      VITE_FIREBASE_STORAGE_BUCKET: '${env.VITE_FIREBASE_STORAGE_BUCKET || 'procalenderfrontend.firebasestorage.app'}',
+      VITE_FIREBASE_MESSAGING_SENDER_ID: '${env.VITE_FIREBASE_MESSAGING_SENDER_ID || '302768668350'}',
+      VITE_FIREBASE_APP_ID: '${env.VITE_FIREBASE_APP_ID || '1:302768668350:web:b92f80489662289e28e8ef'}',
+      VITE_FIREBASE_MEASUREMENT_ID: '${env.VITE_FIREBASE_MEASUREMENT_ID || 'G-QJWKGJN76S'}',
+      
+      // Feature flags
+      VITE_USE_FIREBASE_EMULATORS: '${env.VITE_USE_FIREBASE_EMULATORS || 'false'}',
+      VITE_ENABLE_ANALYTICS: '${env.VITE_ENABLE_ANALYTICS || 'true'}',
+      
+      // Version info (useful for debugging)
+      VITE_APP_VERSION: '${env.VITE_APP_VERSION || '1.0.0'}',
+      VITE_APP_BUILD_DATE: '${new Date().toISOString()}'
     };
   `;
 
   // Ensure public directory exists
   if (!fs.existsSync('./public')) {
-    fs.mkdirSync('./public');
+    fs.mkdirSync('./public', { recursive: true });
   }
 
   // Write the file
   fs.writeFileSync('./public/env-config.js', envConfig);
-  console.log('Created env-config.js with hardcoded values');
+  console.log('Created env-config.js with environment variables');
 }
 
 export default defineConfig(({ mode }) => {
-  // Create env-config.js file
-  createEnvConfigFile();
-
   // Load env file based on mode
   const env = loadEnv(mode, process.cwd());
+  
+  // Create env-config.js file with the loaded environment variables
+  createEnvConfigFile(env);
 
   return {
     base: '/',
@@ -52,7 +63,7 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api': {
-          target: 'https://procalender-backend.onrender.com',
+          target: env.VITE_API_URL || 'https://procalender-backend.onrender.com',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
           secure: true
@@ -100,7 +111,11 @@ export default defineConfig(({ mode }) => {
         VITE_FIREBASE_STORAGE_BUCKET: env.VITE_FIREBASE_STORAGE_BUCKET || 'procalenderfrontend.firebasestorage.app',
         VITE_FIREBASE_MESSAGING_SENDER_ID: env.VITE_FIREBASE_MESSAGING_SENDER_ID || '302768668350',
         VITE_FIREBASE_APP_ID: env.VITE_FIREBASE_APP_ID || '1:302768668350:web:b92f80489662289e28e8ef',
-        VITE_FIREBASE_MEASUREMENT_ID: env.VITE_FIREBASE_MEASUREMENT_ID || 'G-QJWKGJN76S'
+        VITE_FIREBASE_MEASUREMENT_ID: env.VITE_FIREBASE_MEASUREMENT_ID || 'G-QJWKGJN76S',
+        VITE_USE_FIREBASE_EMULATORS: env.VITE_USE_FIREBASE_EMULATORS || 'false',
+        VITE_ENABLE_ANALYTICS: env.VITE_ENABLE_ANALYTICS || 'true',
+        VITE_APP_VERSION: env.VITE_APP_VERSION || '1.0.0',
+        VITE_APP_BUILD_DATE: new Date().toISOString()
       })
     },
     css: {

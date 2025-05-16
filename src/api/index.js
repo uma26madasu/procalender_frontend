@@ -1,76 +1,169 @@
-// src/api/index.js
-const API_BASE = import.meta.env.VITE_API_URL || 'https://procalender-backend.onrender.com';
+// API services for ProCalendar application
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';
 
-console.log('API Base URL:', API_BASE);
-
-// Check API connectivity on startup
-fetch(`${API_BASE}/api/test`)
-  .then(response => {
-    if (response.ok) return response.json();
-    throw new Error(`API test failed with status: ${response.status}`);
-  })
-  .then(data => console.log('API connectivity test:', data))
-  .catch(error => console.error('API connectivity test failed:', error));
-
-export const apiService = {
-  // User and Authentication
-  createUser: async (userData) => {
-    try {
-      const response = await fetch(`${API_BASE}/api/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData)
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('API Error in createUser:', error);
-      return { success: false, message: error.message || 'Failed to create user' };
-    }
-  },
-  
-  // Google Calendar OAuth
-  getGoogleAuthUrl: async () => {
-    try {
-      const response = await fetch(`${API_BASE}/api/auth/google/url`);
-      return await response.json();
-    } catch (error) {
-      console.error('API Error in getGoogleAuthUrl:', error);
-      return { success: false, message: error.message || 'Failed to get Google auth URL' };
-    }
-  },
-  
-  // Remaining methods with error handling...
-  // (keeping the same functionality but adding try/catch blocks)
-  
-  connectGoogleCalendar: async (code, userId) => {
-    try {
-      const response = await fetch(`${API_BASE}/api/auth/google/callback`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, userId })
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('API Error in connectGoogleCalendar:', error);
-      return { success: false, message: error.message || 'Failed to connect Google Calendar' };
-    }
-  },
-  
-  disconnectGoogleCalendar: async (userId) => {
-    try {
-      const response = await fetch(`${API_BASE}/api/auth/google/revoke`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('API Error in disconnectGoogleCalendar:', error);
-      return { success: false, message: error.message || 'Failed to disconnect Google Calendar' };
-    }
-  },
-  
-  // Add other API methods with similar error handling
+// Helper function for handling API responses
+const handleResponse = async (response) => {
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const error = new Error(
+      errorData.message || `API Error: ${response.status} ${response.statusText}`
+    );
+    error.status = response.status;
+    error.data = errorData;
+    throw error;
+  }
+  return response.json();
 };
 
-export default apiService;
+// General request function with authentication
+const request = async (endpoint, options = {}) => {
+  const token = localStorage.getItem('token');
+  
+  const defaultHeaders = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  const config = {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers,
+    },
+  };
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    return await handleResponse(response);
+  } catch (error) {
+    console.error('API Request Error:', error);
+    throw error;
+  }
+};
+
+// Authentication API
+export const authAPI = {
+  login: (credentials) => 
+    request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    }),
+    
+  register: (userData) => 
+    request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    }),
+    
+  verifyToken: () => 
+    request('/auth/verify'),
+    
+  logout: () => {
+    localStorage.removeItem('token');
+    return Promise.resolve();
+  }
+};
+
+// Meetings API
+export const meetingsAPI = {
+  getAll: (filters = {}) => {
+    const queryParams = new URLSearchParams();
+    
+    // Add filters to query params
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, value);
+      }
+    });
+    
+    const queryString = queryParams.toString();
+    return request(`/meetings${queryString ? `?${queryString}` : ''}`);
+  },
+  
+  getById: (id) => 
+    request(`/meetings/${id}`),
+    
+  create: (meetingData) => 
+    request('/meetings', {
+      method: 'POST',
+      body: JSON.stringify(meetingData),
+    }),
+    
+  update: (id, meetingData) => 
+    request(`/meetings/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(meetingData),
+    }),
+    
+  delete: (id) => 
+    request(`/meetings/${id}`, {
+      method: 'DELETE',
+    }),
+    
+  getAvailability: (date) => 
+    request(`/meetings/availability?date=${date}`),
+};
+
+// User API
+export const userAPI = {
+  getProfile: () => 
+    request('/users/profile'),
+    
+  updateProfile: (userData) => 
+    request('/users/profile', {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    }),
+};
+
+// Dashboard API
+export const dashboardAPI = {
+  getStats: () => 
+    request('/dashboard/stats'),
+    
+  getUpcomingMeetings: () => 
+    request('/dashboard/upcoming-meetings'),
+    
+  getRecentLinks: () => 
+    request('/dashboard/recent-links'),
+};
+
+// Analytics API
+export const analyticsAPI = {
+  getProjectStats: () => 
+    request('/analytics/projects'),
+    
+  getTaskStats: () => 
+    request('/analytics/tasks'),
+    
+  getTeamMemberStats: () => 
+    request('/analytics/team'),
+    
+  getActivityLog: () => 
+    request('/analytics/activity'),
+};
+
+// Scheduler API
+export const schedulerAPI = {
+  getAvailableDates: (startDate, endDate) => 
+    request(`/scheduler/available-dates?start=${startDate}&end=${endDate}`),
+    
+  getTimeSlots: (date) => 
+    request(`/scheduler/time-slots?date=${date}`),
+    
+  scheduleAppointment: (appointmentData) => 
+    request('/scheduler/appointments', {
+      method: 'POST',
+      body: JSON.stringify(appointmentData),
+    }),
+};
+
+// Export all APIs
+export default {
+  auth: authAPI,
+  meetings: meetingsAPI,
+  users: userAPI,
+  dashboard: dashboardAPI,
+  analytics: analyticsAPI,
+  scheduler: schedulerAPI,
+};
