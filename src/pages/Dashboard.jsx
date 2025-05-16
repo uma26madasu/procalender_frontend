@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { DashboardSkeleton }  from '../components/Skeleton';
 
 // Simulated data fetch function
 const fetchDashboardData = () => {
@@ -41,8 +40,13 @@ const Dashboard = () => {
       });
   }, []);
 
+  // Simple loading state without the skeleton component
   if (isLoading) {
-    return <DashboardSkeleton />;
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
   }
 
   return (

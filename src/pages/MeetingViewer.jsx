@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { auth } from '../firebase';
 import { apiService } from '../api';
-import { MeetingViewerSkeleton } from '../components/Skeleton';
+
 
 export default function MeetingViewer() {
   const [meetings, setMeetings] = useState([]);

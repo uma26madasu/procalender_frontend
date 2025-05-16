@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  CardSkeleton, 
-  TextSkeleton, 
-  ButtonSkeleton,
-  FormFieldSkeleton,
-  TableRowSkeleton
-} from '../components/Skeleton';
+
 
 // Example component showing various ways to use skeleton loaders
 const LoadingExamplePage = () => {
