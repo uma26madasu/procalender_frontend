@@ -13,6 +13,8 @@ import CreateLink from './pages/CreateLink';
 import PublicScheduler from './pages/PublicScheduler';
 import MeetingViewer from './pages/MeetingViewer';
 import GoogleCallback from './pages/GoogleCallback';
+import GitHubCallback from './pages/GitHubCallback';
+import LinkedInCallback from './pages/LinkedInCallback';
 
 // Protected route component
 const ProtectedRoute = ({ children }) => {
@@ -49,8 +51,10 @@ function App() {
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/schedule/:linkId" element={<PublicScheduler />} />
       
-      {/* OAuth callback */}
+      {/* OAuth callbacks */}
       <Route path="/auth/google/callback" element={<GoogleCallback />} />
+      <Route path="/auth/github/callback" element={<GitHubCallback />} />
+      <Route path="/auth/linkedin/callback" element={<LinkedInCallback />} />
       
       {/* Protected routes */}
       <Route path="/dashboard" element={

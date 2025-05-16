@@ -106,11 +106,17 @@ export const apiService = {
 // LinkedIn OAuth related functions
 export const getLinkedInAuthUrl = async () => {
   try {
-    // This would connect to your backend to get the OAuth URL
-    // For demo purposes, we're returning a mock response
+    // For development/demo purposes, using environment variables
+    // IMPORTANT: Replace these with your actual LinkedIn OAuth app credentials
+    const clientId = import.meta.env.VITE_LINKEDIN_CLIENT_ID || "your-linkedin-client-id";
+    const redirectUri = import.meta.env.VITE_LINKEDIN_REDIRECT_URI || 
+      `${window.location.origin}/auth/linkedin/callback`;
+    
+    console.log('LinkedIn OAuth URL generated with:', { clientId, redirectUri });
+    
     return {
       success: true,
-      url: "https://www.linkedin.com/oauth/v2/authorization?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&response_type=code&scope=r_liteprofile%20r_emailaddress"
+      url: `https://www.linkedin.com/oauth/v2/authorization?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=r_liteprofile%20r_emailaddress`
     };
   } catch (error) {
     console.error('Error getting LinkedIn auth URL:', error);
@@ -143,11 +149,17 @@ export const disconnectLinkedIn = async (userId) => {
 // GitHub OAuth related functions
 export const getGitHubAuthUrl = async () => {
   try {
-    // This would connect to your backend to get the OAuth URL
-    // For demo purposes, we're returning a mock response
+    // For development/demo purposes, using environment variables
+    // IMPORTANT: Replace these with your actual GitHub OAuth app credentials
+    const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID || "your-github-client-id";
+    const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI || 
+      `${window.location.origin}/auth/github/callback`;
+    
+    console.log('GitHub OAuth URL generated with:', { clientId, redirectUri });
+    
     return {
       success: true,
-      url: "https://github.com/login/oauth/authorize?client_id=YOUR_CLIENT_ID&redirect_uri=YOUR_REDIRECT_URI&scope=read:user%20user:email"
+      url: `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user%20user:email`
     };
   } catch (error) {
     console.error('Error getting GitHub auth URL:', error);
