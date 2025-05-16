@@ -94,4 +94,15 @@ export const getGoogleAuthUrl = async () => {
       message: error.message || 'Failed to get Google auth URL' 
     };
   }
+ { 
+  getLinkedInAuthUrl,
+  connectLinkedIn,
+  disconnectLinkedIn,
+  getGitHubAuthUrl,
+  connectGitHub, 
+  disconnectGitHub,
+  getGoogleAuthUrl
+};
+
+// Export apiService as default
 };
