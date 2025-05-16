@@ -1,50 +1,77 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
-import { signInWithGoogle } from '../firebase/auth';
+import { signOut } from 'firebase/auth';
 import { apiService } from '../api';
 
 export default function Dashboard() {
-  const [loading, setLoading] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, message: 'Welcome to your ProCalender dashboard!' },
-    { id: 2, message: 'You have 2 upcoming meetings this week' }
-  ]);
-  
-  // Stats data
-  const stats = [
-    { name: 'Total Meetings', value: '12' },
-    { name: 'Upcoming', value: '3' },
-    { name: 'Completed', value: '9' },
-    { name: 'Scheduling Links', value: '2' }
-  ];
-  
-  // Mock data
-  const upcomingMeetings = [
-    {
-      id: 'm1',
-      clientName: 'John Smith',
-      clientEmail: 'john@example.com',
-      startTime: '2025-05-14T10:00:00Z',
-      endTime: '2025-05-14T10:30:00Z',
-      meetingName: 'Initial Consultation'
-    },
-    {
-      id: 'm2',
-      clientName: 'Sarah Johnson',
-      clientEmail: 'sarah@example.com',
-      startTime: '2025-05-15T14:00:00Z',
-      endTime: '2025-05-15T14:45:00Z',
-      meetingName: 'Follow-up Session'
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [windows, setWindows] = useState([]);
+  const [links, setLinks] = useState([]);
+  const [upcomingMeetings, setUpcomingMeetings] = useState([]);
+  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
+  const [isHubspotConnected, setIsHubspotConnected] = useState(false);
+
+  // Fetch user data and schedule information
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // In a real implementation, you would fetch data from your API
+        // For now, initialize with empty arrays to show empty states
+        setIsGoogleConnected(false);
+        setIsHubspotConnected(false);
+        setWindows([]);
+        setLinks([]);
+        setUpcomingMeetings([]);
+        
+        // Simulate API call completion
+        setTimeout(() => {
+          setLoading(false);
+        }, 1000);
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data. Please try again.');
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/');
+    } catch (err) {
+      console.error('Logout error:', err);
+      setError('Failed to log out. Please try again.');
     }
-  ];
-  
-  const windows = [
-    { id: 'w1', dayOfWeek: 'Monday', startHour: '09:00', endHour: '12:00' },
-    { id: 'w2', dayOfWeek: 'Wednesday', startHour: '13:00', endHour: '17:00' },
-    { id: 'w3', dayOfWeek: 'Friday', startHour: '10:00', endHour: '15:00' }
-  ];
-  
+  };
+
+  const handleConnectGoogle = async () => {
+    try {
+      setLoading(true);
+      // Call your API to get Google OAuth URL
+      // For now, just show a message
+      alert("This would redirect to Google OAuth authorization");
+      setLoading(false);
+    } catch (err) {
+      console.error('Error connecting to Google:', err);
+      setError('Failed to connect to Google Calendar. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const handleConnectHubspot = () => {
+    // In a real implementation, this would redirect to HubSpot OAuth flow
+    alert('This would redirect to HubSpot OAuth authorization');
+  };
+
   // Format date for display
   const formatDate = (dateString) => {
     const options = { weekday: 'short', month: 'short', day: 'numeric' };
@@ -56,131 +83,334 @@ export default function Dashboard() {
     const options = { hour: 'numeric', minute: '2-digit' };
     return new Date(dateString).toLocaleTimeString(undefined, options);
   };
-  
-  const dismissNotification = (id) => {
-    setNotifications(notifications.filter(notification => notification.id !== id));
-  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">{auth.currentUser?.email}</span>
-              <button
-                onClick={() => auth.signOut()}
-                className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Log out
-              </button>
-            </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900">ProCalender Dashboard</h1>
+          <div className="flex items-center space-x-4">
+            <span className="text-gray-600">{auth.currentUser?.email}</span>
+            <button
+              onClick={handleLogout}
+              className="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-100"
+            >
+              Log Out
+            </button>
           </div>
         </div>
       </header>
 
+      {/* Main content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Notifications */}
-        {notifications.length > 0 && (
-          <div className="mb-6">
-            {notifications.map(notification => (
-              <div key={notification.id} className="flex items-center justify-between bg-blue-50 p-4 rounded-md mb-2">
-                <p className="text-blue-700">{notification.message}</p>
-                <button 
-                  onClick={() => dismissNotification(notification.id)}
-                  className="text-blue-500 hover:text-blue-700"
-                >
-                  <span className="sr-only">Dismiss</span>
-                  <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </div>
-            ))}
+        {error && (
+          <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-md">
+            {error}
           </div>
         )}
 
-        {/* Stats */}
+        {/* Stats summary cards */}
         <div className="mb-8">
           <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {stats.map((stat) => (
-              <div key={stat.name} className="bg-white overflow-hidden shadow rounded-lg">
-                <div className="px-4 py-5 sm:p-6">
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    {stat.name}
-                  </dt>
-                  <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                    {stat.value}
-                  </dd>
-                </div>
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Total Meetings
+                </dt>
+                <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                  {upcomingMeetings.length}
+                </dd>
               </div>
-            ))}
+            </div>
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Scheduling Links
+                </dt>
+                <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                  {links.length}
+                </dd>
+              </div>
+            </div>
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Availability Windows
+                </dt>
+                <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                  {windows.length}
+                </dd>
+              </div>
+            </div>
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="px-4 py-5 sm:p-6">
+                <dt className="text-sm font-medium text-gray-500 truncate">
+                  Connected Services
+                </dt>
+                <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                  {(isGoogleConnected ? 1 : 0) + (isHubspotConnected ? 1 : 0)}
+                </dd>
+              </div>
+            </div>
           </dl>
         </div>
 
+        {/* Connected Services */}
+        <section className="mb-10 bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-semibold mb-4">Connected Services</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="border rounded-md p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-10 h-10 flex items-center justify-center bg-blue-100 rounded-full mr-3">
+                    <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm1-7.5v4a1 1 0 0 1-2 0v-4H7a1 1 0 0 1 0-2h4V7a1 1 0 0 1 2 0v3.5h4a1 1 0 0 1 0 2h-4z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Google Calendar</h3>
+                    <p className="text-sm text-gray-500">
+                      {isGoogleConnected ? 'Connected' : 'Not connected'}
+                    </p>
+                  </div>
+                </div>
+                {isGoogleConnected ? (
+                  <button 
+                    className="px-3 py-1 bg-red-500 text-white text-sm rounded-md"
+                  >
+                    Disconnect
+                  </button>
+                ) : (
+                  <button 
+                    onClick={handleConnectGoogle}
+                    className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md"
+                  >
+                    Connect
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            <div className="border rounded-md p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-10 h-10 flex items-center justify-center bg-orange-100 rounded-full mr-3">
+                    <svg className="w-6 h-6 text-orange-600" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-8 14h-3v-3h3v3zm0-5h-3v-3h3v3zm0-5h-3V4h3v3zm5 10h-3v-3h3v3zm0-5h-3v-3h3v3zm0-5h-3V4h3v3zm5 10h-3v-8h3v8zm0-10h-3V4h3v3z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="font-medium">HubSpot CRM</h3>
+                    <p className="text-sm text-gray-500">
+                      {isHubspotConnected ? 'Connected' : 'Not connected'}
+                    </p>
+                  </div>
+                </div>
+                {isHubspotConnected ? (
+                  <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                    Connected
+                  </span>
+                ) : (
+                  <button 
+                    onClick={handleConnectHubspot}
+                    className="px-3 py-1 bg-orange-500 text-white text-sm rounded-md"
+                  >
+                    Connect
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Quick Actions */}
-        <section className="mb-8">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <section className="mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Link
               to="/create-window"
-              className="group relative bg-white p-6 focus:outline-none rounded-lg shadow hover:shadow-md transition-shadow"
+              className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow"
             >
-              <div>
-                <span className="inline-flex items-center justify-center rounded-md bg-blue-50 p-3 text-blue-700">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <div className="flex items-center">
+                <div className="w-12 h-12 flex items-center justify-center bg-blue-100 rounded-full mr-4">
+                  <svg className="w-6 h-6 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5zm2 4h10v2H7v-2zm0 4h7v2H7v-2z"/>
                   </svg>
-                </span>
-                <h3 className="mt-4 text-lg font-medium text-gray-900">Create Availability Window</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Set your regular availability hours for meetings
-                </p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Create Scheduling Window</h3>
+                  <p className="text-gray-600">Set your regular availability hours</p>
+                </div>
               </div>
             </Link>
-
+            
             <Link
               to="/create-link"
-              className="group relative bg-white p-6 focus:outline-none rounded-lg shadow hover:shadow-md transition-shadow"
+              className="bg-white p-6 rounded-lg shadow hover:shadow-md transition-shadow"
             >
-              <div>
-                <span className="inline-flex items-center justify-center rounded-md bg-green-50 p-3 text-green-700">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              <div className="flex items-center">
+                <div className="w-12 h-12 flex items-center justify-center bg-green-100 rounded-full mr-4">
+                  <svg className="w-6 h-6 text-green-600" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M17 7h-4v2h4c1.65 0 3 1.35 3 3s-1.35 3-3 3h-4v2h4c2.76 0 5-2.24 5-5s-2.24-5-5-5zm-6 8H7c-1.65 0-3-1.35-3-3s1.35-3 3-3h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-2zm-3-4h8v2H8z"/>
                   </svg>
-                </span>
-                <h3 className="mt-4 text-lg font-medium text-gray-900">Create Scheduling Link</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Generate a shareable booking link for clients
-                </p>
-              </div>
-            </Link>
-
-            <Link
-              to="/meetings"
-              className="group relative bg-white p-6 focus:outline-none rounded-lg shadow hover:shadow-md transition-shadow"
-            >
-              <div>
-                <span className="inline-flex items-center justify-center rounded-md bg-purple-50 p-3 text-purple-700">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </span>
-                <h3 className="mt-4 text-lg font-medium text-gray-900">View All Meetings</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Manage your upcoming and past meetings
-                </p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-lg">Create Scheduling Link</h3>
+                  <p className="text-gray-600">Generate a shareable booking link</p>
+                </div>
               </div>
             </Link>
           </div>
         </section>
 
+        {/* Availability Windows */}
+        <section className="mb-10 bg-white p-6 rounded-lg shadow">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Your Availability Windows</h2>
+            <Link
+              to="/create-window"
+              className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md"
+            >
+              Add Window
+            </Link>
+          </div>
+          
+          {windows.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="py-2 px-3 text-left text-gray-500 font-medium text-sm">Day</th>
+                    <th className="py-2 px-3 text-left text-gray-500 font-medium text-sm">Start Time</th>
+                    <th className="py-2 px-3 text-left text-gray-500 font-medium text-sm">End Time</th>
+                    <th className="py-2 px-3 text-left text-gray-500 font-medium text-sm">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {windows.map((window) => (
+                    <tr key={window.id} className="border-b border-gray-200">
+                      <td className="py-3 px-3">{window.dayOfWeek}</td>
+                      <td className="py-3 px-3">{window.startHour}</td>
+                      <td className="py-3 px-3">{window.endHour}</td>
+                      <td className="py-3 px-3">
+                        <button className="text-blue-500 hover:text-blue-700 mr-2">Edit</button>
+                        <button className="text-red-500 hover:text-red-700">Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-8 bg-gray-50 rounded-md">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No availability windows</h3>
+              <p className="mt-1 text-sm text-gray-500">Get started by creating your first availability window.</p>
+              <div className="mt-6">
+                <Link
+                  to="/create-window"
+                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  Create Window
+                </Link>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* Scheduling Links */}
+        <section className="mb-10 bg-white p-6 rounded-lg shadow">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Your Scheduling Links</h2>
+            <Link
+              to="/create-link"
+              className="px-3 py-1 bg-blue-500 text-white text-sm rounded-md"
+            >
+              Create Link
+            </Link>
+          </div>
+          
+          {links.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="py-2 px-3 text-left text-gray-500 font-medium text-sm">Meeting Name</th>
+                    <th className="py-2 px-3 text-left text-gray-500 font-medium text-sm">Duration</th>
+                    <th className="py-2 px-3 text-left text-gray-500 font-medium text-sm">Created</th>
+                    <th className="py-2 px-3 text-left text-gray-500 font-medium text-sm">Usage</th>
+                    <th className="py-2 px-3 text-left text-gray-500 font-medium text-sm">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {links.map((link) => (
+                    <tr key={link.id} className="border-b border-gray-200">
+                      <td className="py-3 px-3">{link.name}</td>
+                      <td className="py-3 px-3">{link.meetingLength} min</td>
+                      <td className="py-3 px-3">{new Date(link.created).toLocaleDateString()}</td>
+                      <td className="py-3 px-3">{link.usageCount} bookings</td>
+                      <td className="py-3 px-3 flex">
+                        <button 
+                          onClick={() => {
+                            navigator.clipboard.writeText(link.url)
+                              .then(() => alert('Link copied to clipboard!'))
+                              .catch(err => console.error('Failed to copy link:', err));
+                          }}
+                          className="text-blue-500 hover:text-blue-700 mr-3"
+                          title="Copy Link"
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"></path>
+                            <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"></path>
+                          </svg>
+                        </button>
+                        <button className="text-blue-500 hover:text-blue-700 mr-3">Edit</button>
+                        <button className="text-red-500 hover:text-red-700">Delete</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-8 bg-gray-50 rounded-md">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No scheduling links</h3>
+              <p className="mt-1 text-sm text-gray-500">Create your first scheduling link to share with others.</p>
+              <div className="mt-6">
+                <Link
+                  to="/create-link"
+                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  Create Link
+                </Link>
+              </div>
+            </div>
+          )}
+        </section>
+
         {/* Upcoming Meetings */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-gray-900">Upcoming Meetings</h2>
+        <section className="bg-white p-6 rounded-lg shadow">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Upcoming Meetings</h2>
             <Link
               to="/meetings"
               className="text-sm font-medium text-blue-600 hover:text-blue-500"
@@ -190,88 +420,43 @@ export default function Dashboard() {
           </div>
           
           {upcomingMeetings.length > 0 ? (
-            <div className="bg-white shadow overflow-hidden sm:rounded-md">
-              <ul className="divide-y divide-gray-200">
-                {upcomingMeetings.map((meeting) => (
-                  <li key={meeting.id}>
-                    <div className="px-4 py-4 sm:px-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0">
-                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                              {meeting.clientName.charAt(0)}
-                            </div>
-                          </div>
-                          <div className="ml-4">
-                            <p className="text-sm font-medium text-gray-900">
-                              {meeting.meetingName}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {meeting.clientName} ({meeting.clientEmail})
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex-shrink-0 text-right">
-                          <p className="text-sm font-medium text-gray-900">
-                            {formatDate(meeting.startTime)}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {formatTime(meeting.startTime)} - {formatTime(meeting.endTime)}
-                          </p>
-                        </div>
-                      </div>
+            <div className="grid grid-cols-1 gap-4">
+              {upcomingMeetings.map((meeting) => (
+                <div key={meeting.id} className="border rounded-md p-4">
+                  <div className="flex justify-between">
+                    <div>
+                      <h3 className="font-medium">{meeting.meetingName}</h3>
+                      <p className="text-sm text-gray-600">With: {meeting.clientName}</p>
+                      <p className="text-sm text-gray-600">Email: {meeting.clientEmail}</p>
                     </div>
-                  </li>
-                ))}
-              </ul>
+                    <div className="text-right">
+                      <p className="font-medium">{formatDate(meeting.startTime)}</p>
+                      <p className="text-sm text-gray-600">
+                        {formatTime(meeting.startTime)} - {formatTime(meeting.endTime)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="bg-white shadow overflow-hidden sm:rounded-md p-6 text-center text-gray-500">
-              No upcoming meetings. Create a scheduling link to get started.
-            </div>
-          )}
-        </section>
-
-        {/* Availability Windows */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-gray-900">Your Availability Windows</h2>
-            <Link
-              to="/create-window"
-              className="text-sm font-medium text-blue-600 hover:text-blue-500"
-            >
-              Add window
-            </Link>
-          </div>
-          
-          {windows.length > 0 ? (
-            <div className="bg-white shadow overflow-hidden sm:rounded-md">
-              <ul className="divide-y divide-gray-200">
-                {windows.map((window) => (
-                  <li key={window.id}>
-                    <div className="px-4 py-4 sm:px-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {window.dayOfWeek}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {window.startHour} - {window.endHour}
-                          </p>
-                        </div>
-                        <div className="flex space-x-2">
-                          <button className="text-blue-600 hover:text-blue-900">Edit</button>
-                          <button className="text-red-600 hover:text-red-900">Delete</button>
-                        </div>
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <div className="bg-white shadow overflow-hidden sm:rounded-md p-6 text-center text-gray-500">
-              No availability windows set. Add your first one to start scheduling.
+            <div className="text-center py-8 bg-gray-50 rounded-md">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No upcoming meetings</h3>
+              <p className="mt-1 text-sm text-gray-500">When clients book time with you, you'll see their meetings here.</p>
+              <div className="mt-6">
+                <Link
+                  to="/create-link"
+                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                  </svg>
+                  Create Scheduling Link
+                </Link>
+              </div>
             </div>
           )}
         </section>
