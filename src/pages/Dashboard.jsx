@@ -1,221 +1,83 @@
-// Import only apiService from the API file
+// src/pages/Dashboard.jsx
+import React, { useState, useEffect } from 'react';
 import apiService from '../api';
-// Import the OAuth config directly
-import oauthConfig from '../config/oauth';
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
-import { auth } from '../firebase';
-import { signOut } from 'firebase/auth';
+// Other imports...
 
-export default function Dashboard() {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [windows, setWindows] = useState([]);
-  const [links, setLinks] = useState([]);
-  const [upcomingMeetings, setUpcomingMeetings] = useState([]);
-  const [isGoogleConnected, setIsGoogleConnected] = useState(false);
-  const [isLinkedInConnected, setIsLinkedInConnected] = useState(false);
-  const [isGitHubConnected, setIsGitHubConnected] = useState(false);
-
-  // Fetch user data and schedule information
+function Dashboard() {
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState(null);
+  
   useEffect(() => {
-    const fetchData = async () => {
+    const loadDashboardData = async () => {
       try {
-        setLoading(true);
+        setIsLoading(true);
+        // Your existing data fetching logic
         
-        // In a real implementation, you would fetch data from your API
-        // For now, initialize with empty arrays to show empty states
-        setIsGoogleConnected(false);
-        setIsLinkedInConnected(false);
-        setIsGitHubConnected(false);
-        setWindows([]);
-        setLinks([]);
-        setUpcomingMeetings([]);
+        // For debugging - add console logs
+        console.log("Dashboard component mounted");
         
-        // Simulate API call completion
-        setTimeout(() => {
-          setLoading(false);
-        }, 1000);
+        // Set your data
+        setDashboardData({ /* your data */ });
+        setIsLoading(false);
       } catch (err) {
-        console.error('Error fetching dashboard data:', err);
-        setError('Failed to load dashboard data. Please try again.');
-        setLoading(false);
+        console.error("Dashboard error:", err);
+        setError(err.message || "An error occurred loading the dashboard");
+        setIsLoading(false);
       }
     };
     
-    fetchData();
+    loadDashboardData();
   }, []);
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate('/');
-    } catch (err) {
-      console.error('Logout error:', err);
-      setError('Failed to log out. Please try again.');
-    }
-  };
-
-  const handleConnectGoogle = async () => {
-    try {
-      setLoading(true);
-      // Call your API to get Google OAuth URL
-      const response = await apiService.getGoogleAuthUrl();
-      
-      if (response.success) {
-        // Redirect to Google OAuth URL
-        window.location.href = response.url;
-      } else {
-        setError('Failed to generate Google authorization URL');
-      }
-      setLoading(false);
-    } catch (err) {
-      console.error('Error connecting to Google:', err);
-      setError('Failed to connect to Google Calendar. Please try again.');
-      setLoading(false);
-    }
-  };
-
-  const handleDisconnectGoogle = async () => {
-    try {
-      setLoading(true);
-      const userId = auth.currentUser?.uid;
-      
-      if (!userId) {
-        throw new Error('User not authenticated');
-      }
-      
-      const response = await apiService.disconnectGoogleCalendar(userId);
-      
-      if (response.success) {
-        setIsGoogleConnected(false);
-      } else {
-        setError('Failed to disconnect Google Calendar');
-      }
-      setLoading(false);
-    } catch (err) {
-      console.error('Error disconnecting from Google:', err);
-      setError('Failed to disconnect from Google Calendar. Please try again.');
-      setLoading(false);
-    }
-  };
-
-  const handleConnectLinkedIn = async () => {
-    try {
-      setLoading(true);
-      
-      // Use the OAuth config to get the LinkedIn authorization URL
-      if (!oauthConfig.linkedin.isConfigured()) {
-        console.warn("LinkedIn OAuth is not configured properly.");
-      }
-      
-      const authUrl = oauthConfig.linkedin.getAuthUrl();
-      
-      // Redirect to the LinkedIn OAuth URL
-      window.location.href = authUrl;
-      
-      setLoading(false);
-    } catch (err) {
-      console.error('Error connecting to LinkedIn:', err);
-      setError('Failed to connect to LinkedIn. Please try again.');
-      setLoading(false);
-    }
-  };
-
-  const handleDisconnectLinkedIn = async () => {
-    try {
-      setLoading(true);
-      const userId = auth.currentUser?.uid;
-      
-      if (!userId) {
-        throw new Error('User not authenticated');
-      }
-      
-      // This function would need to be implemented in your API
-      const response = await apiService.disconnectLinkedIn(userId);
-      
-      if (response.success) {
-        setIsLinkedInConnected(false);
-      } else {
-        setError('Failed to disconnect LinkedIn');
-      }
-      setLoading(false);
-    } catch (err) {
-      console.error('Error disconnecting from LinkedIn:', err);
-      setError('Failed to disconnect from LinkedIn. Please try again.');
-      setLoading(false);
-    }
-  };
-
-  const handleConnectGitHub = async () => {
-    try {
-      setLoading(true);
-      
-      // Use the OAuth config to get the GitHub authorization URL
-      if (!oauthConfig.github.isConfigured()) {
-        console.warn("GitHub OAuth is not configured properly.");
-      }
-      
-      const authUrl = oauthConfig.github.getAuthUrl();
-      
-      // Redirect to the GitHub OAuth URL
-      window.location.href = authUrl;
-      
-      setLoading(false);
-    } catch (err) {
-      console.error('Error connecting to GitHub:', err);
-      setError('Failed to connect to GitHub. Please try again.');
-      setLoading(false);
-    }
-  };
-
-  const handleDisconnectGitHub = async () => {
-    try {
-      setLoading(true);
-      const userId = auth.currentUser?.uid;
-      
-      if (!userId) {
-        throw new Error('User not authenticated');
-      }
-      
-      // This function would need to be implemented in your API
-      const response = await apiService.disconnectGitHub(userId);
-      
-      if (response.success) {
-        setIsGitHubConnected(false);
-      } else {
-        setError('Failed to disconnect GitHub');
-      }
-      setLoading(false);
-    } catch (err) {
-      console.error('Error disconnecting from GitHub:', err);
-      setError('Failed to disconnect from GitHub. Please try again.');
-      setLoading(false);
-    }
-  };
-
-  // Format date for display
-  const formatDate = (dateString) => {
-    const options = { weekday: 'short', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
-  };
   
-  // Format time for display
-  const formatTime = (dateString) => {
-    const options = { hour: 'numeric', minute: '2-digit' };
-    return new Date(dateString).toLocaleTimeString(undefined, options);
-  };
-
-  if (loading) {
+  // Add error state rendering
+  if (error) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md">
+          <div className="text-center">
+            <div className="mx-auto h-12 w-12 text-red-500">
+              <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h2 className="mt-4 text-xl font-bold text-gray-900">Dashboard Error</h2>
+            <p className="mt-2 text-sm text-red-500">{error}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
-
-  // Rest of the component remains the same...
-  // The existing JSX for your Dashboard component goes here
+  
+  // Add loading state rendering
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        <p className="ml-3">Loading dashboard...</p>
+      </div>
+    );
+  }
+  
+  // Your existing rendering code
+  return (
+    <div className="container mx-auto px-4 py-8">
+      {/* Debug output */}
+      <div className="bg-yellow-100 p-4 mb-4 rounded">
+        <p>Debug info: Dashboard rendered successfully</p>
+        <p>Data available: {dashboardData ? 'Yes' : 'No'}</p>
+      </div>
+      
+      {/* Your actual dashboard content */}
+      {/* ... */}
+    </div>
+  );
 }
+
+export default Dashboard;
