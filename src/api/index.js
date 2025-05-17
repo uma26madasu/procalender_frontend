@@ -1,5 +1,4 @@
-// Updated OAuth-related functions in src/api/index.js
-// These functions would replace the existing ones in your file
+// src/api/index.js
 
 import oauthConfig from '../config/oauth';
 
@@ -30,6 +29,54 @@ export const getLinkedInAuthUrl = async () => {
     return { 
       success: false, 
       message: error.message || 'Failed to get LinkedIn auth URL' 
+    };
+  }
+};
+
+// Function to handle LinkedIn OAuth code exchange
+export const connectLinkedIn = async (code, userId) => {
+  try {
+    // In a real implementation, you would:
+    // 1. Exchange the code for an access token via your backend
+    // 2. Store the token in your database associated with userId
+    // 3. Optionally fetch user profile data from LinkedIn
+    
+    console.log('Connecting LinkedIn with code:', code, 'for user:', userId);
+    
+    // For development/testing, just return success
+    // Replace with actual API call in production
+    return {
+      success: true,
+      message: 'LinkedIn account connected successfully'
+    };
+  } catch (error) {
+    console.error('Error connecting LinkedIn account:', error);
+    return { 
+      success: false, 
+      message: error.message || 'Failed to connect LinkedIn account' 
+    };
+  }
+};
+
+// Function to disconnect LinkedIn account
+export const disconnectLinkedIn = async (userId) => {
+  try {
+    // In a real implementation, you would:
+    // 1. Remove the stored LinkedIn tokens from your database
+    // 2. Possibly revoke access on LinkedIn's side
+    
+    console.log('Disconnecting LinkedIn for user:', userId);
+    
+    // For development/testing, just return success
+    return {
+      success: true,
+      message: 'LinkedIn account disconnected successfully'
+    };
+  } catch (error) {
+    console.error('Error disconnecting LinkedIn account:', error);
+    return { 
+      success: false, 
+      message: error.message || 'Failed to disconnect LinkedIn account' 
     };
   }
 };
@@ -65,6 +112,54 @@ export const getGitHubAuthUrl = async () => {
   }
 };
 
+// Function to handle GitHub OAuth code exchange
+export const connectGitHub = async (code, userId) => {
+  try {
+    // In a real implementation, you would:
+    // 1. Exchange the code for an access token via your backend
+    // 2. Store the token in your database associated with userId
+    // 3. Optionally fetch user profile data from GitHub
+    
+    console.log('Connecting GitHub with code:', code, 'for user:', userId);
+    
+    // For development/testing, just return success
+    // Replace with actual API call in production
+    return {
+      success: true,
+      message: 'GitHub account connected successfully'
+    };
+  } catch (error) {
+    console.error('Error connecting GitHub account:', error);
+    return { 
+      success: false, 
+      message: error.message || 'Failed to connect GitHub account' 
+    };
+  }
+};
+
+// Function to disconnect GitHub account
+export const disconnectGitHub = async (userId) => {
+  try {
+    // In a real implementation, you would:
+    // 1. Remove the stored GitHub tokens from your database
+    // 2. Possibly revoke access on GitHub's side
+    
+    console.log('Disconnecting GitHub for user:', userId);
+    
+    // For development/testing, just return success
+    return {
+      success: true,
+      message: 'GitHub account disconnected successfully'
+    };
+  } catch (error) {
+    console.error('Error disconnecting GitHub account:', error);
+    return { 
+      success: false, 
+      message: error.message || 'Failed to disconnect GitHub account' 
+    };
+  }
+};
+
 // Google Calendar OAuth function
 export const getGoogleAuthUrl = async () => {
   try {
@@ -94,15 +189,71 @@ export const getGoogleAuthUrl = async () => {
       message: error.message || 'Failed to get Google auth URL' 
     };
   }
- { 
-  getLinkedInAuthUrl,
-  connectLinkedIn,
-  disconnectLinkedIn,
-  getGitHubAuthUrl,
-  connectGitHub, 
-  disconnectGitHub,
-  getGoogleAuthUrl
 };
 
-// Export apiService as default
+// Function to handle Google OAuth code exchange
+export const connectGoogle = async (code, userId) => {
+  try {
+    // In a real implementation, you would:
+    // 1. Exchange the code for an access token via your backend
+    // 2. Store the token in your database associated with userId
+    // 3. Set up calendar integration
+    
+    console.log('Connecting Google with code:', code, 'for user:', userId);
+    
+    // For development/testing, just return success
+    // Replace with actual API call in production
+    return {
+      success: true,
+      message: 'Google account connected successfully'
+    };
+  } catch (error) {
+    console.error('Error connecting Google account:', error);
+    return { 
+      success: false, 
+      message: error.message || 'Failed to connect Google account' 
+    };
+  }
 };
+
+// Function to disconnect Google account
+export const disconnectGoogle = async (userId) => {
+  try {
+    // In a real implementation, you would:
+    // 1. Remove the stored Google tokens from your database
+    // 2. Possibly revoke access on Google's side
+    
+    console.log('Disconnecting Google for user:', userId);
+    
+    // For development/testing, just return success
+    return {
+      success: true,
+      message: 'Google account disconnected successfully'
+    };
+  } catch (error) {
+    console.error('Error disconnecting Google account:', error);
+    return { 
+      success: false, 
+      message: error.message || 'Failed to disconnect Google account' 
+    };
+  }
+};
+
+// Export all functions individually
+export {
+  // The individual functions are already exported above with 'export const'
+  // This is just for clarity if someone wants to import multiple functions
+};
+
+// You could also export a default object if preferred
+// export default {
+//   getLinkedInAuthUrl,
+//   connectLinkedIn,
+//   disconnectLinkedIn,
+//   getGitHubAuthUrl,
+//   connectGitHub,
+//   disconnectGitHub,
+//   getGoogleAuthUrl,
+//   connectGoogle,
+//   disconnectGoogle
+// };

@@ -4,17 +4,16 @@ import { useEffect, useState } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from './firebase';
 
-// Pages
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import Dashboard from './pages/Dashboard';
-import CreateWindow from './pages/CreateWindow';
-import CreateLink from './pages/CreateLink';
-import PublicScheduler from './pages/PublicScheduler';
-import MeetingViewer from './pages/MeetingViewer';
-import GoogleCallback from './pages/GoogleCallback';
-import GitHubCallback from './pages/GitHubCallback';
-import LinkedInCallback from './pages/LinkedInCallback';
+export { default as LoginPage } from './LoginPage';
+export { default as SignupPage } from './SignupPage';
+export { default as Dashboard } from './Dashboard';
+export { default as CreateWindow } from './CreateWindow';
+export { default as CreateLink } from './CreateLink';
+export { default as PublicScheduler } from './PublicScheduler';
+export { default as MeetingViewer } from './MeetingViewer';
+export { default as GoogleCallback } from './GoogleCallback';
+export { default as GitHubCallback } from './GitHubCallback';
+export { default as LinkedInCallback } from './LinkedInCallback';
 
 // Protected route component
 const ProtectedRoute = ({ children }) => {
