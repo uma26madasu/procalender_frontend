@@ -1,4 +1,4 @@
-// src/api/index.js - Add default export
+// src/api/index.js - Support both default and named exports
 import oauthConfig from '../config/oauth';
 
 // LinkedIn OAuth related functions
@@ -59,10 +59,6 @@ const apiService = {
   disconnectGoogle
 };
 
-// Export individual functions as named exports
-export {
-  // These are already exported above with 'export const'
-};
-
-// Export the API service object as default export
+// Export the apiService object as both a named export AND default export
+export { apiService };
 export default apiService;
