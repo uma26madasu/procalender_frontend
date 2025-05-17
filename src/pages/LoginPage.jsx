@@ -1,71 +1,118 @@
-import { useState } from 'react';
+// src/pages/LoginPage.jsx
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { auth, signInWithEmailAndPassword, signInWithGooglePopup } from '../firebase';
-import { LogoIcon } from '../components/Icons';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebase';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import apiService from '../api';
 
-export default function LoginPage() {
+function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [user] = useAuthState(auth);
   const navigate = useNavigate();
 
-  const handleEmailLogin = async (e) => {
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    setLoading(true);
     
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate('/dashboard');
+      // Navigate will happen automatically due to useEffect above
     } catch (err) {
       console.error('Login error:', err);
-      setError(err.message || 'Failed to log in');
-    } finally {
+      setError(err.message || 'Failed to sign in. Please check your credentials.');
       setLoading(false);
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setLoading(true);
-    setError('');
-    
+  const handleGoogleSignIn = async () => {
     try {
-      await signInWithGooglePopup();
-      navigate('/dashboard');
+      setLoading(true);
+      setError('');
+      
+      const authUrl = await apiService.getGoogleAuthUrl();
+      
+      if (authUrl.success && authUrl.url) {
+        window.location.href = authUrl.url;
+      } else {
+        throw new Error(authUrl.message || 'Failed to get Google authentication URL');
+      }
     } catch (err) {
-      console.error('Google login error:', err);
-      setError(err.message || 'Failed to log in with Google');
-    } finally {
+      console.error('Google sign in error:', err);
+      setError(err.message || 'Failed to sign in with Google');
+      setLoading(false);
+    }
+  };
+
+  const handleGitHubSignIn = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const authUrl = await apiService.getGitHubAuthUrl();
+      
+      if (authUrl.success && authUrl.url) {
+        window.location.href = authUrl.url;
+      } else {
+        throw new Error(authUrl.message || 'Failed to get GitHub authentication URL');
+      }
+    } catch (err) {
+      console.error('GitHub sign in error:', err);
+      setError(err.message || 'Failed to sign in with GitHub');
+      setLoading(false);
+    }
+  };
+
+  const handleLinkedInSignIn = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const authUrl = await apiService.getLinkedInAuthUrl();
+      
+      if (authUrl.success && authUrl.url) {
+        window.location.href = authUrl.url;
+      } else {
+        throw new Error(authUrl.message || 'Failed to get LinkedIn authentication URL');
+      }
+    } catch (err) {
+      console.error('LinkedIn sign in error:', err);
+      setError(err.message || 'Failed to sign in with LinkedIn');
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <div className="h-12 w-12 text-blue-600">
-            <LogoIcon />
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="max-w-md w-full">
+        <div className="text-center mb-6">
+          <div className="flex justify-center mb-4">
+            <svg className="h-12 w-12 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
           </div>
+          <h1 className="text-3xl font-bold text-gray-900">Sign in to ProCalender</h1>
+          <p className="mt-2 text-sm text-gray-600">Schedule and manage meetings with ease</p>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-          Sign in to ProCalender
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Schedule and manage meetings with ease
-        </p>
-      </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           {error && (
-            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
+            <div className="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded">
               {error}
             </div>
           )}
           
-          <form onSubmit={handleEmailLogin} className="space-y-6">
+          <form className="space-y-6" onSubmit={handleLogin}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email address
@@ -73,11 +120,12 @@ export default function LoginPage() {
               <div className="mt-1">
                 <input
                   id="email"
+                  name="email"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
                   autoComplete="email"
                   required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 />
               </div>
@@ -90,11 +138,12 @@ export default function LoginPage() {
               <div className="mt-1">
                 <input
                   id="password"
+                  name="password"
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
                   required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 />
               </div>
@@ -106,7 +155,7 @@ export default function LoginPage() {
                 disabled={loading}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
               >
-                {loading ? 'Signing in...' : 'Sign in'}
+                Sign in
               </button>
             </div>
           </form>
@@ -121,13 +170,14 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Google Sign In Button */}
             <div className="mt-6">
               <button
-                onClick={handleGoogleLogin}
+                onClick={handleGoogleSignIn}
                 disabled={loading}
-                className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-500 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
               >
-                <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24" width="24" height="24">
+                <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
                   <g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)">
                     <path fill="#4285F4" d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z"/>
                     <path fill="#34A853" d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z"/>
@@ -138,17 +188,45 @@ export default function LoginPage() {
                 Sign in with Google
               </button>
             </div>
-          </div>
 
-          <div className="mt-6">
-            <div className="text-sm">
-              <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500">
-                Don't have an account? Sign up
-              </Link>
+            {/* GitHub Sign In Button */}
+            <div className="mt-3">
+              <button
+                onClick={handleGitHubSignIn}
+                disabled={loading}
+                className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 0C4.477 0 0 4.477 0 10c0 4.42 2.87 8.17 6.84 9.5.5.08.66-.23.66-.5v-1.69c-2.77.6-3.36-1.34-3.36-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.87 1.52 2.34 1.07 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.92 0-1.11.38-2 1.03-2.71-.1-.25-.45-1.29.1-2.64 0 0 .84-.27 2.75 1.02.79-.22 1.65-.33 2.5-.33.85 0 1.71.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.35.2 2.39.1 2.64.65.71 1.03 1.6 1.03 2.71 0 3.82-2.34 4.66-4.57 4.91.36.31.69.92.69 1.85V19c0 .27.16.59.67.5C17.14 18.16 20 14.42 20 10A10 10 0 0010 0z" clipRule="evenodd" />
+                </svg>
+                Sign in with GitHub
+              </button>
             </div>
+
+            {/* LinkedIn Sign In Button */}
+            <div className="mt-3">
+              <button
+                onClick={handleLinkedInSignIn}
+                disabled={loading}
+                className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <svg className="h-5 w-5 mr-2" fill="#0077B5" viewBox="0 0 24 24">
+                  <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                </svg>
+                Sign in with LinkedIn
+              </button>
+            </div>
+          </div>
+          
+          <div className="mt-6 text-center">
+            <Link to="/signup" className="text-sm text-blue-600 hover:text-blue-500">
+              Don't have an account? Sign up
+            </Link>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+export default LoginPage;
