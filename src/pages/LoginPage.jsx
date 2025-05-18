@@ -5,7 +5,7 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfi
 import { auth, signInWithGooglePopup } from '../firebase';
 
 // Import the SlotifyLogo component
-import SlotifyLogo from '../components/SlotifyLogo';
+import SlotifyLogo from '../components/SlotifyLogo.jsx';
 
 const LoginPage = ({ initialSignUp = false }) => {
   const [name, setName] = useState('');
