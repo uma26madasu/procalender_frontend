@@ -1,19 +1,52 @@
 // src/components/SlotifyLogo.jsx
 import React from 'react';
 
-const SlotifyLogo = ({ className = "h-10 w-10" }) => (
-  <svg className={className} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <rect x="10" y="25" width="80" height="60" rx="8" fill="#3b82f6"/>
-    <rect x="15" y="30" width="70" height="50" rx="4" fill="white"/>
-    <rect x="30" y="40" width="40" height="5" rx="2.5" fill="#3b82f6"/>
-    <rect x="30" y="50" width="25" height="5" rx="2.5" fill="#3b82f6"/>
-    <rect x="30" y="60" width="35" height="5" rx="2.5" fill="#3b82f6"/>
-    <circle cx="22.5" cy="20" r="7.5" fill="#3b82f6"/>
-    <circle cx="77.5" cy="20" r="7.5" fill="#3b82f6"/>
-    <rect x="20" y="15" width="5" height="10" rx="2.5" fill="white"/>
-    <rect x="75" y="15" width="5" height="10" rx="2.5" fill="white"/>
-    <circle cx="70" cy="45" r="8" fill="#10b981" className="animate-pulse"/>
-  </svg>
-);
+const SlotifyLogo = ({ className = '', size = 32 }) => {
+  return (
+    <div className={`text-white inline-flex ${className}`}>
+      <svg 
+        width={size} 
+        height={size} 
+        viewBox="0 0 32 32" 
+        fill="none" 
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        {/* Calendar base shape */}
+        <rect 
+          x="2" 
+          y="6" 
+          width="28" 
+          height="22" 
+          rx="3" 
+          className="fill-current" 
+        />
+        
+        {/* Calendar top bar */}
+        <rect 
+          x="4" 
+          y="2" 
+          width="24" 
+          height="6" 
+          rx="2" 
+          className="fill-current" 
+          opacity="0.7" 
+        />
+        
+        {/* Calendar time slots */}
+        <rect x="6" y="12" width="8" height="2" rx="1" fill="white" />
+        <rect x="18" y="12" width="8" height="2" rx="1" fill="white" />
+        <rect x="6" y="16" width="8" height="2" rx="1" fill="white" />
+        <rect x="18" y="16" width="8" height="2" rx="1" fill="white" />
+        <rect x="6" y="20" width="8" height="2" rx="1" fill="white" />
+        <rect x="18" y="20" width="8" height="2" rx="1" fill="white" />
+        
+        {/* Clock hands representing time selection */}
+        <circle cx="16" cy="22" r="5" fill="white" opacity="0.9" />
+        <rect x="15.5" y="18" width="1" height="4" rx="0.5" fill="currentColor" />
+        <rect x="15.5" y="21.5" width="1" height="3" rx="0.5" transform="rotate(-45 15.5 21.5)" fill="currentColor" />
+      </svg>
+    </div>
+  );
+};
 
 export default SlotifyLogo;
