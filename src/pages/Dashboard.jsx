@@ -90,13 +90,13 @@ function Dashboard() {
   
   return (
     <MainLayout user={user} activePath="/dashboard">
-      {/* Dashboard header with welcome message */}
-      <div className="flex items-center justify-between py-4 px-4 bg-white rounded-lg shadow-sm mb-4">
+      {/* Dashboard header with Slotify branding */}
+      <div className="flex items-center justify-between py-4 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-sm mb-4 text-white">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Welcome, {user?.displayName || 'there'}!</h1>
-          <p className="text-sm text-gray-600">Here's your schedule today</p>
+          <h1 className="text-xl font-bold">Welcome to <span className="font-extrabold tracking-tight">Slotify</span>, {user?.displayName || 'there'}!</h1>
+          <p className="text-sm opacity-90">Manage your time effortlessly with Slotify</p>
         </div>
-        <div className="text-sm text-gray-600">
+        <div className="text-sm opacity-90">
           <div>{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</div>
         </div>
       </div>
@@ -128,7 +128,7 @@ function Dashboard() {
         </button>
       </div>
 
-      {/* Stats cards in a more compact layout */}
+      {/* Stats cards */}
       <div className="grid grid-cols-3 gap-3 mb-4">
         <Card className="p-4 card-hover">
           <div className="flex items-center">
@@ -173,7 +173,7 @@ function Dashboard() {
         </Card>
       </div>
       
-      {/* Recent Activity with clean design */}
+      {/* Recent Activity */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-base font-semibold text-gray-900">Recent Activity</h2>

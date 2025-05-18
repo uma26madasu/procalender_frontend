@@ -169,9 +169,9 @@ const SignupPage = () => {
       </div>
       
       <div className="mt-4 text-center text-xs text-gray-500">
-        <p>By signing up, you agree to our Terms of Service and Privacy Policy.</p>
-        <p className="mt-1">© {new Date().getFullYear()} ProCalender. All rights reserved.</p>
-      </div>
+  <p>By signing up, you agree to our Terms of Service and Privacy Policy.</p>
+  <p className="mt-1">© {new Date().getFullYear()} Slotify. All rights reserved.</p>
+</div>
     </div>
   );
 };
