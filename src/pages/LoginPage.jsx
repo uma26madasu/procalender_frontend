@@ -9,7 +9,7 @@ const features = [
   {
     id: 1,
     title: "Smart Scheduling",
-    description: "Intelligent time slot suggestions based on availability patterns",
+    description: "Automatically find the perfect time slots for your meetings and events",
     icon: (
       <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -18,31 +18,31 @@ const features = [
   },
   {
     id: 2,
-    title: "Calendar Integrations",
-    description: "Seamlessly connect with Google, Outlook, and other calendar providers",
+    title: "Time Zone Intelligence",
+    description: "Schedule across time zones without the confusion",
     icon: (
       <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     )
   },
   {
     id: 3,
-    title: "Custom Booking Pages",
-    description: "Create personalized booking pages that match your brand",
+    title: "Team Coordination",
+    description: "Sync calendars with your team for better collaboration",
     icon: (
       <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
       </svg>
     )
   },
   {
     id: 4,
-    title: "Automated Reminders",
-    description: "Send automated notifications to reduce no-shows",
+    title: "Task Integration",
+    description: "Connect your tasks with your calendar for improved productivity",
     icon: (
       <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
       </svg>
     )
   }
@@ -129,38 +129,33 @@ const LoginPage = ({ initialSignUp = false }) => {
     navigate(newIsSignUp ? '/signup' : '/login', { replace: true });
   };
 
-  // IMPORTANT: The return statement must be inside the component function
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100">
+    <div className="flex min-h-screen">
       {/* Left side - Features & Animations */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 to-blue-400 p-12 text-white">
-        <div className="max-w-md mx-auto space-y-16">
+      <div className="hidden lg:flex lg:w-1/2 bg-blue-600 p-12 text-white">
+        <div className="max-w-md mx-auto flex flex-col justify-center">
           {/* Logo and brand name */}
-          <div className="flex items-center space-x-3 animate-fadeIn">
+          <div className="flex items-center space-x-3 mb-16">
             <SlotifyLogo />
             <h1 className="text-3xl font-bold tracking-tight">Slotify</h1>
           </div>
           
-          {/* Tagline */}
-          <div className="animate-slideInFromLeft" style={{ animationDelay: '0.2s' }}>
-            <h2 className="text-2xl font-semibold mb-2">Scheduling made simple</h2>
-            <p className="text-blue-100">Book meetings without the back-and-forth</p>
+          {/* Main Headline */}
+          <div className="mb-16">
+            <h2 className="text-3xl font-bold mb-4">Schedule with Ease</h2>
+            <p className="text-blue-100 text-lg">Book meetings without the back-and-forth</p>
           </div>
           
           {/* Features */}
           <div className="space-y-8">
-            {features.map((feature, index) => (
-              <div 
-                key={feature.id} 
-                className="flex items-start space-x-4 animate-slideInFromLeft" 
-                style={{ animationDelay: `${0.4 + index * 0.1}s` }}
-              >
-                <div className="bg-white/20 p-2 rounded-lg">
+            {features.map((feature) => (
+              <div key={feature.id} className="flex items-start space-x-4">
+                <div className="bg-white rounded-full p-3 text-blue-600">
                   {feature.icon}
                 </div>
                 <div>
-                  <h3 className="font-medium text-lg">{feature.title}</h3>
-                  <p className="text-blue-100 text-sm mt-1">{feature.description}</p>
+                  <h3 className="text-xl font-semibold">{feature.title}</h3>
+                  <p className="text-blue-100 mt-1">{feature.description}</p>
                 </div>
               </div>
             ))}
@@ -169,10 +164,10 @@ const LoginPage = ({ initialSignUp = false }) => {
       </div>
       
       {/* Right side - Login/Signup Form */}
-      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-8 animate-fadeIn">
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-8 bg-white">
         <div className="w-full max-w-md space-y-8">
           {/* Mobile logo */}
-          <div className="flex items-center justify-center lg:hidden mb-10 space-x-3">
+          <div className="flex items-center justify-center lg:hidden mb-8 space-x-3">
             <SlotifyLogo />
             <h1 className="text-3xl font-bold text-blue-600 tracking-tight">Slotify</h1>
           </div>
@@ -190,7 +185,7 @@ const LoginPage = ({ initialSignUp = false }) => {
           
           {/* Error message */}
           {error && (
-            <div className="p-4 bg-red-50 border border-red-100 rounded-md text-red-600 text-sm animate-shake">
+            <div className="p-4 bg-red-50 border border-red-100 rounded-md text-red-600 text-sm">
               {error}
             </div>
           )}
@@ -316,18 +311,16 @@ const LoginPage = ({ initialSignUp = false }) => {
             )}
             
             {!isSignUp && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                    Remember me
-                  </label>
-                </div>
+              <div className="flex items-center">
+                <input
+                  id="remember-me"
+                  name="remember-me"
+                  type="checkbox"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                  Remember me
+                </label>
               </div>
             )}
             
@@ -352,12 +345,13 @@ const LoginPage = ({ initialSignUp = false }) => {
             </div>
           </form>
           
-          <div className="mt-4 text-center">
+          {/* Sign up/in toggle link - made more prominent */}
+          <div className="mt-6 text-center">
             <button 
               type="button" 
               onClick={toggleSignUp}
               disabled={isLoading}
-              className="text-sm text-blue-600 hover:text-blue-500 font-medium transition-colors"
+              className="inline-block py-2 px-4 text-blue-600 hover:text-blue-700 font-medium border-b-2 border-blue-600 hover:border-blue-700 transition-colors"
             >
               {isSignUp 
                 ? 'Already have an account? Sign in' 
