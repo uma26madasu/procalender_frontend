@@ -11,7 +11,7 @@ import CreateWindow from './pages/CreateWindow';
 import CreateLink from './pages/CreateLink';
 import PublicScheduler from './pages/PublicScheduler';
 import { Card, Button } from './components/UI';
-import SlotifyLogo from './components/SlotifyLogo';
+import SlotifyLogo from './components/SlotifyLogo.jsx';
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {
