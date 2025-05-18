@@ -4,7 +4,6 @@ import { auth } from './firebase';
 
 // Pages
 import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
 import Dashboard from './pages/Dashboard';
 import CreateWindow from './pages/CreateWindow';
 import CreateLink from './pages/CreateLink';
@@ -38,15 +37,15 @@ function App() {
   
   return (
     <Routes>
-      {/* Make root redirect to signup or dashboard based on auth state */}
+      {/* Make root redirect to login or dashboard based on auth state */}
       <Route
         path="/"
-        element={user ? <Navigate to="/dashboard" replace /> : <SignupPage />}
+        element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />}
       />
       
-      {/* Public routes */}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
+      {/* Public routes - both login and signup now use the same component */}
+      <Route path="/login" element={<LoginPage initialSignUp={false} />} />
+      <Route path="/signup" element={<LoginPage initialSignUp={true} />} />
       <Route path="/schedule/:linkId" element={<PublicScheduler />} />
       
       {/* OAuth callbacks */}
