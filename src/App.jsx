@@ -1,19 +1,46 @@
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from './firebase';
 
 // Pages
 import LoginPage from './pages/LoginPage';
-// Import other pages...
+import Dashboard from './pages/Dashboard';
+import MeetingViewer from './pages/MeetingViewer';
+import CreateWindow from './pages/CreateWindow';
+import CreateLink from './pages/CreateLink';
+import PublicScheduler from './pages/PublicScheduler';
+import { Card, Button } from './components/UI';
+import SlotifyLogo from './components/SlotifyLogo';
+
+// Protected Route wrapper
+const ProtectedRoute = ({ children }) => {
+  const [user, loading] = useAuthState(auth);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+};
 
 function App() {
   const [authInitialized, setAuthInitialized] = useState(false);
   const [authError, setAuthError] = useState(null);
+  const [user, loading] = useAuthState(auth);
   
   useEffect(() => {
     // Add timeout to prevent infinite loading
     const timeoutId = setTimeout(() => {
-      if (!authInitialized) {
+      if (!authInitialized && !loading) {
         console.warn("Auth initialization timed out");
         setAuthInitialized(true);
         setAuthError("Authentication initialization timed out. Please try refreshing the page.");
@@ -45,43 +72,78 @@ function App() {
       clearTimeout(timeoutId);
       unsubscribe && unsubscribe();
     };
-  }, []);
+  }, [loading]);
   
+  // Loading state
+  if (loading || !authInitialized) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <SlotifyLogo size={48} showText className="mb-8" textClassName="text-xl" />
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+  
+  // Auth error state
   if (authError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-md">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Authentication Error</h1>
-          <p className="text-gray-700 mb-4">{authError}</p>
-          <p className="text-gray-600 mb-4">Please try refreshing the page or contact support if the issue persists.</p>
-          <button 
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <Card className="max-w-md w-full p-6">
+          <div className="text-center mb-6">
+            <SlotifyLogo size={48} showText className="mx-auto mb-6" textClassName="text-xl" />
+            <h1 className="text-2xl font-bold text-red-600 mb-2">Authentication Error</h1>
+            <p className="text-gray-700 mb-4">{authError}</p>
+            <p className="text-gray-600 mb-6">Please try refreshing the page or contact support if the issue persists.</p>
+          </div>
+          <Button 
             onClick={() => window.location.reload()} 
-            className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            fullWidth
           >
             Refresh Page
-          </button>
-        </div>
+          </Button>
+        </Card>
       </div>
     );
   }
   
-  if (!authInitialized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-  
-  // Original return with routes
   return (
     <Routes>
-      {/* Public routes that don't require authentication */}
+      {/* Public Routes */}
       <Route path="/login" element={<LoginPage initialSignUp={false} />} />
       <Route path="/signup" element={<LoginPage initialSignUp={true} />} />
+      <Route path="/book/:linkId" element={<PublicScheduler />} />
       
-      {/* Add a catch-all route that redirects to login */}
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      {/* Protected Routes */}
+      <Route path="/" element={
+        <ProtectedRoute>
+          <Dashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard" element={
+        <ProtectedRoute>
+          <Dashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/meetings" element={
+        <ProtectedRoute>
+          <MeetingViewer />
+        </ProtectedRoute>
+      } />
+      <Route path="/create-window" element={
+        <ProtectedRoute>
+          <CreateWindow />
+        </ProtectedRoute>
+      } />
+      <Route path="/create-link" element={
+        <ProtectedRoute>
+          <CreateLink />
+        </ProtectedRoute>
+      } />
+      
+      {/* 404 - Redirect to dashboard if logged in, otherwise to login */}
+      <Route path="*" element={
+        user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+      } />
     </Routes>
   );
 }

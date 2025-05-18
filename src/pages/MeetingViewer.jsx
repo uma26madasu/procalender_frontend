@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { auth } from '../firebase';
-import { apiService } from '../api';
-
+import MainLayout from '../components/layout/MainLayout';
+import { Card, Button, Badge, Modal, Alert } from '../components/UI';
 
 export default function MeetingViewer() {
   const [meetings, setMeetings] = useState([]);
@@ -9,6 +9,16 @@ export default function MeetingViewer() {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('upcoming'); // 'upcoming', 'past', 'all'
   const [selectedMeeting, setSelectedMeeting] = useState(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Filter tabs
+  const filterTabs = [
+    { id: 'upcoming', label: 'Upcoming' },
+    { id: 'past', label: 'Past' },
+    { id: 'all', label: 'All Meetings' }
+  ];
 
   useEffect(() => {
     const fetchMeetings = async () => {
@@ -16,57 +26,72 @@ export default function MeetingViewer() {
         setLoading(true);
         
         // In a real implementation, you would fetch meetings from your API
-        // const response = await apiService.getMeetings(auth.currentUser.uid);
+        // Simulate API delay for demonstration
+        setTimeout(() => {
+          // Mock data for development
+          const mockMeetings = [
+            {
+              id: 'm1',
+              clientName: 'John Smith',
+              clientEmail: 'john@example.com',
+              startTime: '2025-05-24T10:00:00Z',
+              endTime: '2025-05-24T10:30:00Z',
+              meetingName: 'Initial Consultation',
+              status: 'confirmed',
+              linkId: 'l1',
+              questions: [
+                { question: 'What topics would you like to discuss?', answer: 'Retirement planning and investment strategies' }
+              ]
+            },
+            {
+              id: 'm2',
+              clientName: 'Sarah Johnson',
+              clientEmail: 'sarah@example.com',
+              startTime: '2025-05-25T14:00:00Z',
+              endTime: '2025-05-25T14:45:00Z',
+              meetingName: 'Follow-up Session',
+              status: 'confirmed',
+              linkId: 'l2',
+              questions: [
+                { question: 'What topics would you like to discuss?', answer: 'Tax planning for small business' },
+                { question: 'How did you hear about us?', answer: 'Referral from a friend' }
+              ]
+            },
+            {
+              id: 'm3',
+              clientName: 'David Lee',
+              clientEmail: 'david@example.com',
+              startTime: '2025-05-14T09:00:00Z',
+              endTime: '2025-05-14T09:30:00Z',
+              meetingName: 'Initial Consultation',
+              status: 'completed',
+              linkId: 'l1',
+              questions: [
+                { question: 'What topics would you like to discuss?', answer: 'Estate planning options' }
+              ]
+            },
+            {
+              id: 'm4',
+              clientName: 'Emma Wilson',
+              clientEmail: 'emma@example.com',
+              startTime: '2025-05-13T11:00:00Z',
+              endTime: '2025-05-13T12:00:00Z',
+              meetingName: 'Strategy Session',
+              status: 'canceled',
+              linkId: 'l3',
+              questions: [
+                { question: 'What are your business goals?', answer: 'Expanding to new markets in the next year' }
+              ]
+            }
+          ];
+          
+          setMeetings(mockMeetings);
+          setLoading(false);
+        }, 1000);
         
-        // Mock data for development
-        const mockMeetings = [
-          {
-            id: 'm1',
-            clientName: 'John Smith',
-            clientEmail: 'john@example.com',
-            startTime: '2025-05-14T10:00:00Z',
-            endTime: '2025-05-14T10:30:00Z',
-            meetingName: 'Initial Consultation',
-            status: 'confirmed',
-            linkId: 'l1',
-            questions: [
-              { question: 'What topics would you like to discuss?', answer: 'Retirement planning and investment strategies' }
-            ]
-          },
-          {
-            id: 'm2',
-            clientName: 'Sarah Johnson',
-            clientEmail: 'sarah@example.com',
-            startTime: '2025-05-15T14:00:00Z',
-            endTime: '2025-05-15T14:45:00Z',
-            meetingName: 'Follow-up Session',
-            status: 'confirmed',
-            linkId: 'l2',
-            questions: [
-              { question: 'What topics would you like to discuss?', answer: 'Tax planning for small business' },
-              { question: 'How did you hear about us?', answer: 'Referral from a friend' }
-            ]
-          },
-          {
-            id: 'm3',
-            clientName: 'David Lee',
-            clientEmail: 'david@example.com',
-            startTime: '2025-04-30T09:00:00Z',
-            endTime: '2025-04-30T09:30:00Z',
-            meetingName: 'Initial Consultation',
-            status: 'completed',
-            linkId: 'l1',
-            questions: [
-              { question: 'What topics would you like to discuss?', answer: 'Estate planning options' }
-            ]
-          }
-        ];
-        
-        setMeetings(mockMeetings);
       } catch (err) {
         console.error('Error fetching meetings:', err);
         setError('Failed to load meetings. Please try again.');
-      } finally {
         setLoading(false);
       }
     };
@@ -76,39 +101,51 @@ export default function MeetingViewer() {
 
   const updateMeetingStatus = async (meetingId, newStatus) => {
     try {
-      setLoading(true);
+      setCancelLoading(true);
       
-      const response = await apiService.updateMeetingStatus(meetingId, newStatus);
+      // Simulate API call with a timeout
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      if (response.success) {
-        // Update the meeting in the local state
-        setMeetings(meetings.map(meeting => 
-          meeting.id === meetingId ? { ...meeting, status: newStatus } : meeting
-        ));
-        
-        // Close modal if open
-        if (selectedMeeting && selectedMeeting.id === meetingId) {
-          setSelectedMeeting({ ...selectedMeeting, status: newStatus });
-        }
-      } else {
-        setError(`Failed to ${newStatus === 'canceled' ? 'cancel' : 'update'} meeting. Please try again.`);
+      // Update the meeting in the local state
+      setMeetings(meetings.map(meeting => 
+        meeting.id === meetingId ? { ...meeting, status: newStatus } : meeting
+      ));
+      
+      // Close modals and show success message
+      setShowCancelModal(false);
+      if (selectedMeeting && selectedMeeting.id === meetingId) {
+        setSelectedMeeting({ ...selectedMeeting, status: newStatus });
       }
+      
+      setSuccessMessage(`Meeting ${newStatus === 'canceled' ? 'canceled' : 'updated'} successfully.`);
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setSuccessMessage('');
+      }, 5000);
+      
     } catch (err) {
       console.error(`Error ${newStatus === 'canceled' ? 'canceling' : 'updating'} meeting:`, err);
       setError(`Failed to ${newStatus === 'canceled' ? 'cancel' : 'update'} meeting. Please try again.`);
     } finally {
-      setLoading(false);
+      setCancelLoading(false);
     }
   };
 
-  const cancelMeeting = async (meetingId) => {
-    if (window.confirm('Are you sure you want to cancel this meeting? This will remove it from your calendar and notify the attendee.')) {
-      await updateMeetingStatus(meetingId, 'canceled');
+  const handleCancelMeeting = () => {
+    if (selectedMeeting) {
+      setShowCancelModal(true);
     }
   };
 
-  const completeMeeting = async (meetingId) => {
-    await updateMeetingStatus(meetingId, 'completed');
+  const confirmCancelMeeting = async () => {
+    await updateMeetingStatus(selectedMeeting.id, 'canceled');
+  };
+
+  const handleCompleteMeeting = async () => {
+    if (selectedMeeting) {
+      await updateMeetingStatus(selectedMeeting.id, 'completed');
+    }
   };
 
   // Filter meetings based on selected filter
@@ -117,9 +154,9 @@ export default function MeetingViewer() {
     const now = new Date();
     
     if (filter === 'upcoming') {
-      return meetingDate > now;
+      return meetingDate > now && meeting.status !== 'canceled';
     } else if (filter === 'past') {
-      return meetingDate < now;
+      return meetingDate < now || meeting.status === 'completed' || meeting.status === 'canceled';
     }
     return true; // 'all' filter
   });
@@ -136,6 +173,17 @@ export default function MeetingViewer() {
     return new Date(dateString).toLocaleTimeString(undefined, options);
   };
 
+  // Check if a meeting is today
+  const isToday = (dateString) => {
+    const today = new Date();
+    const meetingDate = new Date(dateString);
+    return (
+      meetingDate.getDate() === today.getDate() &&
+      meetingDate.getMonth() === today.getMonth() &&
+      meetingDate.getFullYear() === today.getFullYear()
+    );
+  };
+
   // View meeting details
   const viewMeetingDetails = (meeting) => {
     setSelectedMeeting(meeting);
@@ -146,222 +194,347 @@ export default function MeetingViewer() {
     setSelectedMeeting(null);
   };
 
+  // Status badge component
+  const StatusBadge = ({ status }) => {
+    const variants = {
+      confirmed: 'success',
+      completed: 'secondary',
+      canceled: 'danger'
+    };
+    
+    const labels = {
+      confirmed: 'Confirmed',
+      completed: 'Completed',
+      canceled: 'Canceled'
+    };
+    
+    return (
+      <Badge variant={variants[status] || 'secondary'} rounded>
+        {labels[status] || status}
+      </Badge>
+    );
+  };
+
+  // Loading skeleton
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
+      <MainLayout>
+        <div className="space-y-6">
+          <div className="flex flex-wrap gap-4 mb-6">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-10 w-24 bg-gray-200 rounded-md animate-pulse"></div>
+            ))}
+          </div>
+          
+          <Card>
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+              <div className="space-y-6">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="flex items-start">
+                    <div className="h-12 w-12 bg-gray-200 rounded-full"></div>
+                    <div className="ml-4 flex-1">
+                      <div className="h-5 bg-gray-200 rounded w-1/3 mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2 mb-1"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                    </div>
+                    <div className="h-8 w-24 bg-gray-200 rounded"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+        </div>
+      </MainLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">Your Meetings</h1>
+    <MainLayout>
+      {/* Filter Tabs */}
+      <div className="mb-6">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            {filterTabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setFilter(tab.id)}
+                className={`
+                  whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm
+                  ${
+                    filter === tab.id
+                      ? 'border-indigo-500 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }
+                `}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
         </div>
-      </header>
+      </div>
+      
+      {/* Success message */}
+      {successMessage && (
+        <Alert 
+          type="success" 
+          message={successMessage} 
+          onClose={() => setSuccessMessage('')}
+          className="mb-6"
+        />
+      )}
+      
+      {/* Error message */}
+      {error && (
+        <Alert 
+          type="error" 
+          message={error} 
+          onClose={() => setError('')}
+          className="mb-6"
+        />
+      )}
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {error && (
-          <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-md">
-            {error}
-          </div>
-        )}
-
-        {/* Filters */}
-        <div className="mb-6">
-          <div className="flex space-x-4">
-            <button
-              onClick={() => setFilter('upcoming')}
-              className={`px-4 py-2 rounded-md ${
-                filter === 'upcoming'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              Upcoming
-            </button>
-            <button
-              onClick={() => setFilter('past')}
-              className={`px-4 py-2 rounded-md ${
-                filter === 'past'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              Past
-            </button>
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-md ${
-                filter === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              All
-            </button>
-          </div>
-        </div>
-
-        {/* Meetings List */}
+      {/* Meetings List */}
+      <Card>
+        <h3 className="text-lg font-medium text-gray-900 mb-6">
+          {filter === 'upcoming' ? 'Upcoming Meetings' : 
+           filter === 'past' ? 'Past Meetings' : 'All Meetings'}
+        </h3>
+        
         {filteredMeetings.length > 0 ? (
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Client
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Meeting Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date & Time
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredMeetings.map((meeting) => (
-                  <tr key={meeting.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{meeting.clientName}</div>
-                      <div className="text-sm text-gray-500">{meeting.clientEmail}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{meeting.meetingName}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{formatDate(meeting.startTime)}</div>
-                      <div className="text-sm text-gray-500">
-                        {formatTime(meeting.startTime)} - {formatTime(meeting.endTime)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        meeting.status === 'confirmed'
-                          ? 'bg-green-100 text-green-800'
-                          : meeting.status === 'completed'
-                          ? 'bg-gray-100 text-gray-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {meeting.status.charAt(0).toUpperCase() + meeting.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <button
-                        onClick={() => viewMeetingDetails(meeting)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        View Details
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="space-y-6">
+            {filteredMeetings.map((meeting) => (
+              <div 
+                key={meeting.id} 
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => viewMeetingDetails(meeting)}
+              >
+                <div className="flex items-start">
+                  <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-medium">
+                    {meeting.clientName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="ml-3">
+                    <p className="font-medium text-gray-900">{meeting.clientName}</p>
+                    <p className="text-sm text-gray-500">{meeting.clientEmail}</p>
+                  </div>
+                </div>
+                
+                <div className="mt-3 sm:mt-0 flex flex-col sm:items-center">
+                  <p className="font-medium text-gray-900">{meeting.meetingName}</p>
+                  <p className="text-sm text-gray-500">
+                    {isToday(meeting.startTime) ? 'Today' : formatDate(meeting.startTime)}, {formatTime(meeting.startTime)}
+                  </p>
+                </div>
+                
+                <div className="mt-3 sm:mt-0 flex items-center">
+                  <StatusBadge status={meeting.status} />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      viewMeetingDetails(meeting);
+                    }}
+                    className="ml-4 text-indigo-600 hover:text-indigo-800"
+                  >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
-          <div className="bg-white p-8 text-center rounded-lg shadow">
-            <p className="text-gray-500">No {filter} meetings found.</p>
+          <div className="text-center py-8">
+            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <h3 className="mt-2 text-base font-medium text-gray-900">No meetings found</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {filter === 'upcoming' 
+                ? 'You have no upcoming meetings scheduled.' 
+                : filter === 'past' 
+                ? 'You have no past meetings.' 
+                : 'You have no meetings scheduled.'}
+            </p>
+            <div className="mt-6">
+              <Button 
+                variant="primary"
+                onClick={() => window.location.href = '/create-link'}
+              >
+                Create Booking Link
+              </Button>
+            </div>
           </div>
         )}
-      </main>
+      </Card>
 
       {/* Meeting Details Modal */}
       {selectedMeeting && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" id="meeting-modal">
-          <div className="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
-            <div className="flex justify-between items-center pb-3">
-              <h3 className="text-xl font-semibold text-gray-900">{selectedMeeting.meetingName}</h3>
-              <button
+        <Modal
+          isOpen={!!selectedMeeting}
+          onClose={closeMeetingDetails}
+          title={selectedMeeting.meetingName}
+          size="lg"
+          footer={
+            <>
+              <Button
+                variant="secondary"
                 onClick={closeMeetingDetails}
-                className="text-gray-500 hover:text-gray-700"
               >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="mt-4">
-              <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-500">Client</h4>
-                <p className="mt-1 text-sm text-gray-900">{selectedMeeting.clientName} ({selectedMeeting.clientEmail})</p>
-              </div>
+                Close
+              </Button>
               
-              <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-500">Date & Time</h4>
-                <p className="mt-1 text-sm text-gray-900">
-                  {formatDate(selectedMeeting.startTime)}, {formatTime(selectedMeeting.startTime)} - {formatTime(selectedMeeting.endTime)}
-                </p>
-              </div>
-              
-              <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-500">Status</h4>
-                <p className="mt-1">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    selectedMeeting.status === 'confirmed'
-                      ? 'bg-green-100 text-green-800'
-                      : selectedMeeting.status === 'completed'
-                      ? 'bg-gray-100 text-gray-800'
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {selectedMeeting.status.charAt(0).toUpperCase() + selectedMeeting.status.slice(1)}
-                  </span>
-                </p>
-              </div>
-              
-              {selectedMeeting.questions && selectedMeeting.questions.length > 0 && (
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium text-gray-500">Questions</h4>
-                  <div className="mt-1 space-y-2">
-                    {selectedMeeting.questions.map((q, index) => (
-                      <div key={index} className="border-l-2 border-blue-200 pl-3">
-                        <p className="text-sm font-medium text-gray-700">{q.question}</p>
-                        <p className="text-sm text-gray-600">{q.answer}</p>
-                      </div>
-                    ))}
+              {selectedMeeting.status === 'confirmed' && (
+                <>
+                  <Button
+                    variant="success"
+                    onClick={handleCompleteMeeting}
+                    className="ml-3"
+                  >
+                    Mark as Completed
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={handleCancelMeeting}
+                    className="ml-3"
+                  >
+                    Cancel Meeting
+                  </Button>
+                </>
+              )}
+            </>
+          }
+        >
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 uppercase mb-2">Client Information</h4>
+                <div className="flex items-center">
+                  <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-medium">
+                    {selectedMeeting.clientName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="ml-3">
+                    <p className="font-medium text-gray-900">{selectedMeeting.clientName}</p>
+                    <p className="text-sm text-gray-500">{selectedMeeting.clientEmail}</p>
                   </div>
                 </div>
-              )}
+              </div>
               
-              <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  onClick={closeMeetingDetails}
-                  className="px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50"
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 uppercase mb-2">Meeting Details</h4>
+                <p className="font-medium text-gray-900">
+                  {isToday(selectedMeeting.startTime) ? 'Today' : formatDate(selectedMeeting.startTime)}
+                </p>
+                <p className="text-gray-500">
+                  {formatTime(selectedMeeting.startTime)} - {formatTime(selectedMeeting.endTime)}
+                </p>
+                <div className="mt-2">
+                  <StatusBadge status={selectedMeeting.status} />
+                </div>
+              </div>
+            </div>
+            
+            {selectedMeeting.questions && selectedMeeting.questions.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 uppercase mb-2">Questionnaire Responses</h4>
+                <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+                  {selectedMeeting.questions.map((q, index) => (
+                    <div key={index} className="border-l-2 border-indigo-200 pl-4">
+                      <p className="text-sm font-medium text-gray-700">{q.question}</p>
+                      <p className="text-sm text-gray-600 mt-1">{q.answer}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div>
+              <h4 className="text-sm font-medium text-gray-500 uppercase mb-2">Calendar Integration</h4>
+              <div className="space-x-3">
+                <Button 
+                  variant="secondary" 
+                  size="sm"
+                  icon={
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  }
                 >
-                  Close
-                </button>
-                
-                {selectedMeeting && selectedMeeting.status === 'confirmed' && (
-                  <>
-                    <button
-                      onClick={() => completeMeeting(selectedMeeting.id)}
-                      className="px-4 py-2 bg-green-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-green-700"
-                    >
-                      Mark Completed
-                    </button>
-                    <button
-                      onClick={() => cancelMeeting(selectedMeeting.id)}
-                      className="px-4 py-2 bg-red-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-red-700"
-                    >
-                      Cancel Meeting
-                    </button>
-                  </>
-                )}
+                  Add to Google Calendar
+                </Button>
+                <Button 
+                  variant="secondary" 
+                  size="sm"
+                  icon={
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  }
+                >
+                  Download ICS File
+                </Button>
               </div>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
-    </div>
+
+      {/* Cancel Meeting Confirmation Modal */}
+      <Modal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        title="Cancel Meeting"
+        size="md"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setShowCancelModal(false)}
+              disabled={cancelLoading}
+            >
+              Keep Meeting
+            </Button>
+            <Button
+              variant="danger"
+              onClick={confirmCancelMeeting}
+              isLoading={cancelLoading}
+              className="ml-3"
+            >
+              {cancelLoading ? 'Canceling...' : 'Yes, Cancel Meeting'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="bg-red-50 p-4 rounded-lg text-red-700">
+            <div className="flex">
+              <svg className="h-5 w-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p>Are you sure you want to cancel this meeting?</p>
+            </div>
+          </div>
+          
+          {selectedMeeting && (
+            <div>
+              <p className="text-gray-700">
+                <span className="font-medium">Meeting:</span> {selectedMeeting.meetingName}
+              </p>
+              <p className="text-gray-700">
+                <span className="font-medium">Client:</span> {selectedMeeting.clientName}
+              </p>
+              <p className="text-gray-700">
+                <span className="font-medium">Date & Time:</span> {formatDate(selectedMeeting.startTime)}, {formatTime(selectedMeeting.startTime)}
+              </p>
+            </div>
+          )}
+          
+          <p className="text-gray-500 text-sm">
+            Canceling this meeting will send a notification to the client and remove it from both of your calendars.
+          </p>
+        </div>
+      </Modal>
+    </MainLayout>
   );
 }

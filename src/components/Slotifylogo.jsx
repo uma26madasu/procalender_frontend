@@ -1,50 +1,38 @@
-// src/components/SlotifyLogo.jsx
 import React from 'react';
 
-const SlotifyLogo = ({ className = '', size = 32 }) => {
+const SlotifyLogo = ({ className = '', size = 32, showText = false, textClassName = '' }) => {
   return (
-    <div className={`text-white inline-flex ${className}`}>
+    <div className={`flex items-center ${className}`}>
+      {/* Icon */}
       <svg 
         width={size} 
         height={size} 
-        viewBox="0 0 32 32" 
+        viewBox="0 0 24 24" 
         fill="none" 
         xmlns="http://www.w3.org/2000/svg"
+        className="text-indigo-600"
       >
-        {/* Calendar base shape */}
-        <rect 
-          x="2" 
-          y="6" 
-          width="28" 
-          height="22" 
-          rx="3" 
-          className="fill-current" 
-        />
+        {/* Calendar background */}
+        <rect x="3" y="6" width="18" height="15" rx="2" fill="currentColor" />
         
-        {/* Calendar top bar */}
-        <rect 
-          x="4" 
-          y="2" 
-          width="24" 
-          height="6" 
-          rx="2" 
-          className="fill-current" 
-          opacity="0.7" 
-        />
+        {/* Calendar inner area */}
+        <rect x="5" y="8" width="14" height="11" rx="1" fill="white" />
         
-        {/* Calendar time slots */}
-        <rect x="6" y="12" width="8" height="2" rx="1" fill="white" />
-        <rect x="18" y="12" width="8" height="2" rx="1" fill="white" />
-        <rect x="6" y="16" width="8" height="2" rx="1" fill="white" />
-        <rect x="18" y="16" width="8" height="2" rx="1" fill="white" />
-        <rect x="6" y="20" width="8" height="2" rx="1" fill="white" />
-        <rect x="18" y="20" width="8" height="2" rx="1" fill="white" />
+        {/* Calendar hangers */}
+        <rect x="7" y="3" width="2" height="4" rx="1" fill="currentColor" />
+        <rect x="15" y="3" width="2" height="4" rx="1" fill="currentColor" />
         
-        {/* Clock hands representing time selection */}
-        <circle cx="16" cy="22" r="5" fill="white" opacity="0.9" />
-        <rect x="15.5" y="18" width="1" height="4" rx="0.5" fill="currentColor" />
-        <rect x="15.5" y="21.5" width="1" height="3" rx="0.5" transform="rotate(-45 15.5 21.5)" fill="currentColor" />
+        {/* Calendar lines/time slot indicators */}
+        <rect x="7" y="10" width="10" height="1.5" rx="0.75" fill="currentColor" />
+        <rect x="7" y="14" width="6" height="1.5" rx="0.75" fill="currentColor" />
       </svg>
+      
+      {/* Text (Optional) */}
+      {showText && (
+        <span className={`ml-2 font-bold text-indigo-600 ${textClassName}`}>
+          Slotify
+        </span>
+      )}
     </div>
   );
 };
