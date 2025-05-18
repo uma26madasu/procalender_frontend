@@ -10,32 +10,16 @@ import MeetingViewer from './pages/MeetingViewer';
 import CreateWindow from './pages/CreateWindow';
 import CreateLink from './pages/CreateLink';
 import PublicScheduler from './pages/PublicScheduler';
-import { Card, Button } from './components/UI';
-import SlotifyLogo from './components/SlotifyLogo.jsx';
 
-// Protected Route wrapper
-const ProtectedRoute = ({ children }) => {
-  const [user, loading] = useAuthState(auth);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
-};
+// Import components using the barrel pattern
+import { Card, Button, SlotifyLogo, ProtectedRoute } from './components';
 
 function App() {
   const [authInitialized, setAuthInitialized] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [user, loading] = useAuthState(auth);
+  
+  // Rest of the App component code remains the same...
   
   useEffect(() => {
     // Add timeout to prevent infinite loading

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebase';
-import MainLayout from '../components/layout/MainLayout';
-import { Card, Button, Badge, Avatar } from '../components/UI';
+
+// Import components using the barrel pattern
+import { MainLayout, Card, Button, Badge, Avatar } from '../components';
 
 function Dashboard() {
   const [error, setError] = useState(null);
@@ -11,6 +12,8 @@ function Dashboard() {
   const [dashboardData, setDashboardData] = useState(null);
   const [user] = useAuthState(auth);
   const navigate = useNavigate();
+
+  // Rest of the Dashboard component code remains the same...
 
   useEffect(() => {
     const loadDashboardData = async () => {
