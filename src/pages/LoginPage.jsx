@@ -4,8 +4,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import apiService from '../api';
-import Input from '../components/ui/Input';
-import Button from '../components/ui/Button';
+import { Input, Button } from '../components/UI';
 
 function LoginPage() {
   const [email, setEmail] = useState('');
