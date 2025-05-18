@@ -174,7 +174,7 @@ export const Sidebar = ({ user, signOut, activePath }) => {
       <div className="flex flex-col justify-between h-full">
         <div className="flex-grow">
           <div className="p-4 flex items-center justify-center border-b">
-            <h1 className="text-xl font-bold text-blue-600">ProCalender</h1>
+            <h1 className="text-xl font-bold text-blue-600">Slotify</h1>
           </div>
           <div className="p-4">
             <ul className="space-y-1">

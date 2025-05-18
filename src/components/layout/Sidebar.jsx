@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../../firebase';
+import SlotifyLogo from '../../components/SlotifyLogo';
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -67,7 +68,10 @@ const Sidebar = () => {
       <div className="flex flex-col justify-between h-full">
         <div className="flex-grow">
           <div className="p-3 flex items-center justify-center border-b">
-            <h1 className="text-lg font-bold text-blue-600">ProCalender</h1>
+            <div className="flex items-center space-x-2">
+              <SlotifyLogo className="h-6 w-6" />
+              <h1 className="text-lg font-bold text-blue-600">Slotify</h1>
+            </div>
           </div>
           <div className="p-2">
             <ul className="space-y-1">
