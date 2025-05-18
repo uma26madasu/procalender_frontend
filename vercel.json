@@ -14,12 +14,8 @@
       "handle": "filesystem"
     },
     {
-      "src": "/debug",
-      "dest": "/debug.html"
-    },
-    {
-      "src": "/firebase-test",
-      "dest": "/firebase-test.html"
+      "src": "/login",
+      "dest": "/login.html"
     },
     {
       "src": "/assets/(.*)",
