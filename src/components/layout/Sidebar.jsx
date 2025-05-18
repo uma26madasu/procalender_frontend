@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../../firebase';
-import SlotifyLogo from '../../components/SlotifyLogo';
+import SlotifyLogo from '../SlotifyLogo';
 
 const Sidebar = () => {
   const navigate = useNavigate();
