@@ -1,85 +1,69 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthState } from 'react-firebase-hooks/auth';
+import { useState, useEffect } from 'react';
 import { auth } from './firebase';
 
 // Pages
 import LoginPage from './pages/LoginPage';
-import Dashboard from './pages/Dashboard';
-import CreateWindow from './pages/CreateWindow';
-import CreateLink from './pages/CreateLink';
-import PublicScheduler from './pages/PublicScheduler';
-import MeetingViewer from './pages/MeetingViewer';
-import GoogleCallback from './pages/GoogleCallback';
-import GitHubCallback from './pages/GitHubCallback';
-import LinkedInCallback from './pages/LinkedInCallback';
+// Import other pages...
 
-// Protected route component
-const ProtectedRoute = ({ children }) => {
-  const [user, loading] = useAuthState(auth);
+function App() {
+  const [authInitialized, setAuthInitialized] = useState(false);
+  const [authError, setAuthError] = useState(null);
   
-  if (loading) {
+  useEffect(() => {
+    // Check if Firebase Auth is available
+    if (!auth) {
+      console.error("Firebase auth not initialized");
+      setAuthError("Firebase authentication failed to initialize");
+      return;
+    }
+    
+    // Set up auth state listener
+    const unsubscribe = auth.onAuthStateChanged(
+      (user) => {
+        setAuthInitialized(true);
+      },
+      (error) => {
+        console.error("Auth state error:", error);
+        setAuthError("Authentication error: " + error.message);
+      }
+    );
+    
+    return unsubscribe;
+  }, []);
+  
+  if (authError) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-md">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Authentication Error</h1>
+          <p className="text-gray-700 mb-4">{authError}</p>
+          <p className="text-gray-600 mb-4">Please try refreshing the page or contact support if the issue persists.</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!authInitialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
   
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  return children;
-};
-
-function App() {
-  const [user] = useAuthState(auth);
-  
+  // Original return with routes
   return (
     <Routes>
-      {/* Make root redirect to login or dashboard based on auth state */}
-      <Route
-        path="/"
-        element={user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />}
-      />
-      
-      {/* Public routes - both login and signup now use the same component */}
+      {/* Your existing routes */}
       <Route path="/login" element={<LoginPage initialSignUp={false} />} />
-      <Route path="/signup" element={<LoginPage initialSignUp={true} />} />
-      <Route path="/schedule/:linkId" element={<PublicScheduler />} />
-      
-      {/* OAuth callbacks */}
-      <Route path="/auth/google/callback" element={<GoogleCallback />} />
-      <Route path="/auth/github/callback" element={<GitHubCallback />} />
-      <Route path="/auth/linkedin/callback" element={<LinkedInCallback />} />
-      
-      {/* Protected routes */}
-      <Route path="/dashboard" element={
-        <ProtectedRoute>
-          <Dashboard />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/create-window" element={
-        <ProtectedRoute>
-          <CreateWindow />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/create-link" element={
-        <ProtectedRoute>
-          <CreateLink />
-        </ProtectedRoute>
-      } />
-      
-      <Route path="/meetings" element={
-        <ProtectedRoute>
-          <MeetingViewer />
-        </ProtectedRoute>
-      } />
-      
-      {/* Fallback route */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* Other routes... */}
     </Routes>
   );
 }

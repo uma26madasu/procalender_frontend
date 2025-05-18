@@ -4,16 +4,46 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Slotify</title>
+  <!-- Debug message to confirm page load -->
+  <script>console.log('HTML page loaded at:', new Date().toISOString());</script>
+  <!-- Load environment variables -->
+  <script>
+    window.__ENV__ = window.__ENV__ || {
+      VITE_API_URL: 'https://slotify-backend.onrender.com',
+      VITE_FIREBASE_API_KEY: 'AIzaSyCYsr6oZ3j-R7nJe6xWaRO6Q5xi0Rk3IV8',
+      VITE_FIREBASE_AUTH_DOMAIN: 'procalenderfrontend.firebaseapp.com',
+      VITE_FIREBASE_PROJECT_ID: 'procalenderfrontend',
+      VITE_FIREBASE_STORAGE_BUCKET: 'procalenderfrontend.firebasestorage.app',
+      VITE_FIREBASE_MESSAGING_SENDER_ID: '302768668350',
+      VITE_FIREBASE_APP_ID: '1:302768668350:web:b92f80489662289e28e8ef',
+      VITE_FIREBASE_MEASUREMENT_ID: 'G-QJWKGJN76S'
+    };
+    console.log('Environment variables loaded:', Object.keys(window.__ENV__).length > 0 ? 'Yes' : 'No');
+  </script>
   <script src="/env-config.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafb; }
     .fallback { display: none; padding: 20px; text-align: center; max-width: 600px; margin: 50px auto; background: white; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
     #root:empty + .fallback { display: block; }
+    #debug-panel { padding: 20px; margin: 20px; background: #f0f0f0; border-radius: 8px; display: none; }
+    .loading-indicator { padding: 15px; text-align: center; font-style: italic; color: #666; }
+    .error-message { background: #fee; color: #c00; padding: 10px; border-radius: 4px; margin: 10px 0; }
+    .success-message { background: #efe; color: #080; padding: 10px; border-radius: 4px; margin: 10px 0; }
+    .asset-test { margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .asset-test button { padding: 8px 12px; border-radius: 4px; border: 1px solid #ddd; background: white; cursor: pointer; }
+    .debug-info { text-align: left; margin: 15px auto; max-width: 500px; background: #f8f8f8; padding: 10px; border-radius: 4px; }
+    .debug-info pre { overflow: auto; max-height: 200px; }
   </style>
 </head>
 <body>
+  <!-- Loading message that will disappear when React renders -->
+  <div class="loading-indicator">Initializing application...</div>
+  
+  <!-- React root element -->
   <div id="root"></div>
+  
+  <!-- Fallback UI that appears if React fails to load -->
   <div class="fallback">
     <h1 style="color: #3b82f6; margin-bottom: 20px;">Slotify</h1>
     <p>The application is having trouble loading. This could be due to:</p>
@@ -22,28 +52,145 @@
       <li>Missing environment variables</li>
       <li>Network issues with API connections</li>
     </ul>
+    
+    <div class="debug-info">
+      <h3>Technical Details:</h3>
+      <div id="error-details">Checking application status...</div>
+    </div>
+    
+    <div class="asset-test">
+      <button onclick="testAsset('/assets/index-CbVu0U0a.js')">Test JS Bundle</button>
+      <button onclick="testAsset('/env-config.js')">Test Env Config</button>
+      <button onclick="showDebugInfo()">Show Debug Panel</button>
+    </div>
+    
     <div style="margin-top: 20px;">
       <a href="/debug" style="display: inline-block; background: #3b82f6; color: white; padding: 10px 20px; border-radius: 4px; text-decoration: none; margin-right: 10px;">View Debug Info</a>
       <button onclick="window.location.reload()" style="background: #f3f4f6; border: 1px solid #d1d5db; padding: 10px 20px; border-radius: 4px; cursor: pointer;">Refresh Page</button>
     </div>
   </div>
+
+  <!-- Debug panel with detailed information -->
+  <div id="debug-panel">
+    <h2>Application Debug Information</h2>
+    <button onclick="document.getElementById('debug-panel').style.display = 'none'">Close</button>
+    
+    <h3>Environment Variables:</h3>
+    <pre id="env-debug"></pre>
+    
+    <h3>Browser Information:</h3>
+    <pre id="browser-debug"></pre>
+    
+    <h3>Network Status:</h3>
+    <div id="network-debug">Testing network connections...</div>
+  </div>
+
   <script>
+    // Function to test if an asset can be loaded
+    function testAsset(assetPath) {
+      const startTime = performance.now();
+      
+      fetch(assetPath)
+        .then(response => {
+          const endTime = performance.now();
+          if (!response.ok) {
+            throw new Error(`Status: ${response.status}`);
+          }
+          document.getElementById('error-details').innerHTML += 
+            `<div class="success-message">✓ ${assetPath} loaded successfully (${Math.round(endTime - startTime)}ms)</div>`;
+          return response.text();
+        })
+        .then(content => {
+          console.log(`Asset ${assetPath} loaded: ${content.length} bytes`);
+        })
+        .catch(error => {
+          document.getElementById('error-details').innerHTML += 
+            `<div class="error-message">✗ Error loading ${assetPath}: ${error.message}</div>`;
+        });
+    }
+
+    // Function to show the debug panel
+    function showDebugInfo() {
+      const debugPanel = document.getElementById('debug-panel');
+      debugPanel.style.display = 'block';
+      
+      // Display environment variables
+      const envDebug = document.getElementById('env-debug');
+      try {
+        envDebug.textContent = JSON.stringify(window.__ENV__, null, 2);
+      } catch (e) {
+        envDebug.textContent = "Error getting environment variables: " + e.message;
+      }
+      
+      // Display browser information
+      const browserDebug = document.getElementById('browser-debug');
+      browserDebug.textContent = `
+User Agent: ${navigator.userAgent}
+Platform: ${navigator.platform}
+Cookies Enabled: ${navigator.cookieEnabled}
+Language: ${navigator.language}
+Online: ${navigator.onLine}
+      `;
+      
+      // Test network connections
+      const networkDebug = document.getElementById('network-debug');
+      
+      Promise.all([
+        fetch('/').then(() => "✓ Base URL is accessible"),
+        fetch('/assets').catch(() => "✗ Assets directory test failed"),
+        fetch('https://slotify-backend.onrender.com').catch(() => "✗ Backend API test failed")
+      ]).then(results => {
+        networkDebug.innerHTML = results.map(r => `<div>${r}</div>`).join('');
+      });
+    }
+
+    // Check if React renders within 5 seconds
     window.addEventListener('load', function() {
       setTimeout(function() {
-        // If React hasn't rendered anything after 3 seconds
-        if (document.getElementById('root').children.length === 0) {
-          console.error('React application failed to render within 3 seconds');
-         
-          // Create a detailed error message in the console
-          console.error('Environment variables check:', {
-            viteApiUrl: typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL ? 'present' : 'missing',
-            viteFirebaseKey: typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_FIREBASE_API_KEY ? 'present' : 'missing'
-          });
+        const root = document.getElementById('root');
+        const loadingIndicator = document.querySelector('.loading-indicator');
+        
+        // Remove the loading indicator once the page is fully loaded
+        if (loadingIndicator) {
+          loadingIndicator.style.display = 'none';
         }
-      }, 3000);
+        
+        // If React hasn't rendered anything after 5 seconds
+        if (root.children.length === 0) {
+          console.error('React application failed to render within 5 seconds');
+          
+          // Create a detailed error message in the console
+          const envCheck = {
+            envConfigScript: !!document.querySelector('script[src="/env-config.js"]'),
+            envVarsObject: !!window.__ENV__,
+            viteApiUrl: window.__ENV__?.VITE_API_URL ? 'present' : 'missing',
+            viteFirebaseKey: window.__ENV__?.VITE_FIREBASE_API_KEY ? 'present' : 'missing'
+          };
+          console.error('Environment check:', envCheck);
+          
+          // Update the error details in the UI
+          const errorDetails = document.getElementById('error-details');
+          errorDetails.innerHTML = `
+            <div>React failed to initialize. Please check the browser console for errors.</div>
+            <div class="error-message">
+              Environment variables check:<br>
+              - env-config.js script: ${envCheck.envConfigScript ? '✓' : '✗'}<br>
+              - Environment object: ${envCheck.envVarsObject ? '✓' : '✗'}<br>
+              - API URL: ${envCheck.viteApiUrl}<br>
+              - Firebase Key: ${envCheck.viteFirebaseKey}
+            </div>
+          `;
+          
+          // Test main bundle automatically
+          testAsset('/assets/index-CbVu0U0a.js');
+        } else {
+          console.log('React application rendered successfully');
+        }
+      }, 5000);
     });
   </script>
- 
+  
+  <!-- Main application bundle -->
   <script type="module" src="/assets/index-CbVu0U0a.js"></script>
 </body>
 </html>
