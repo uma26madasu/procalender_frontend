@@ -11,25 +11,40 @@ function App() {
   const [authError, setAuthError] = useState(null);
   
   useEffect(() => {
+    // Add timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (!authInitialized) {
+        console.warn("Auth initialization timed out");
+        setAuthInitialized(true);
+        setAuthError("Authentication initialization timed out. Please try refreshing the page.");
+      }
+    }, 10000); // 10 second timeout
+    
     // Check if Firebase Auth is available
     if (!auth) {
       console.error("Firebase auth not initialized");
       setAuthError("Firebase authentication failed to initialize");
-      return;
+      setAuthInitialized(true); // Set to true to exit loading state
+      return () => clearTimeout(timeoutId);
     }
     
     // Set up auth state listener
     const unsubscribe = auth.onAuthStateChanged(
       (user) => {
+        console.log("Auth state changed, user:", user ? "logged in" : "not logged in");
         setAuthInitialized(true);
       },
       (error) => {
         console.error("Auth state error:", error);
         setAuthError("Authentication error: " + error.message);
+        setAuthInitialized(true); // Set to true to exit loading state
       }
     );
     
-    return unsubscribe;
+    return () => {
+      clearTimeout(timeoutId);
+      unsubscribe && unsubscribe();
+    };
   }, []);
   
   if (authError) {
@@ -61,9 +76,12 @@ function App() {
   // Original return with routes
   return (
     <Routes>
-      {/* Your existing routes */}
+      {/* Public routes that don't require authentication */}
       <Route path="/login" element={<LoginPage initialSignUp={false} />} />
-      {/* Other routes... */}
+      <Route path="/signup" element={<LoginPage initialSignUp={true} />} />
+      
+      {/* Add a catch-all route that redirects to login */}
+      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }
