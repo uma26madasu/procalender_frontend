@@ -3,10 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebase';
 import apiService from '../api';
-import MainLayout from '../components/layout/MainLayout';
-import Card from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import EmptyState from '../components/ui/EmptyState';
+import { Card, Button, EmptyState, MainLayout } from '../components/UI';
 
 function Dashboard() {
   const [error, setError] = useState(null);
@@ -55,7 +52,7 @@ function Dashboard() {
   // Error state
   if (error) {
     return (
-      <MainLayout>
+      <MainLayout user={user} activePath="/dashboard">
         <div className="min-h-screen flex items-center justify-center">
           <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md">
             <div className="text-center">
@@ -82,7 +79,7 @@ function Dashboard() {
   // Loading state
   if (isLoading) {
     return (
-      <MainLayout>
+      <MainLayout user={user} activePath="/dashboard">
         <div className="min-h-screen flex items-center justify-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
           <p className="ml-3">Loading dashboard...</p>
@@ -92,7 +89,7 @@ function Dashboard() {
   }
   
   return (
-    <MainLayout>
+    <MainLayout user={user} activePath="/dashboard">
       {/* Dashboard header with welcome message and date */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
