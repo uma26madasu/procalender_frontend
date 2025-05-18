@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth, signInWithGoogle } from '../firebase';
+import { auth, signInWithGooglePopup } from '../firebase'; // Changed from signInWithGoogle to signInWithGooglePopup
 
 const LoginPage = ({ initialSignUp = false }) => {
   const [email, setEmail] = useState('');
@@ -42,7 +42,7 @@ const LoginPage = ({ initialSignUp = false }) => {
     
     try {
       if (provider === 'Google') {
-        await signInWithGoogle();
+        await signInWithGooglePopup(); // Changed from signInWithGoogle to signInWithGooglePopup
       } else if (provider === 'GitHub') {
         // Replace with your GitHub auth method
         console.log('GitHub login - implement your method here');
