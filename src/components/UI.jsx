@@ -1,329 +1,320 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 
-export function Button({ 
+// Button Component
+export const Button = ({ 
   children, 
-  type = "button", 
+  onClick, 
+  isLoading = false, 
   variant = "primary", 
-  size = "md", 
-  className = "", 
+  className = "",
+  type = "button",
   disabled = false,
-  loading = false,
-  onClick,
-  ...props 
-}) {
-  const baseStyles = "inline-flex items-center justify-center font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2";
+  fullWidth = false
+}) => {
+  const baseClasses = "px-4 py-2 rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition";
   
-  const variantStyles = {
-    primary: "bg-blue-600 hover:bg-blue-700 text-white border border-transparent focus:ring-blue-500",
-    secondary: "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 focus:ring-blue-500",
-    success: "bg-green-600 hover:bg-green-700 text-white border border-transparent focus:ring-green-500",
-    danger: "bg-red-600 hover:bg-red-700 text-white border border-transparent focus:ring-red-500",
+  const variantClasses = {
+    primary: "bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500",
+    secondary: "bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 focus:ring-blue-500",
+    success: "bg-green-600 hover:bg-green-700 text-white focus:ring-green-500",
+    danger: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500"
   };
-  
-  const sizeStyles = {
-    sm: "px-2.5 py-1.5 text-xs",
-    md: "px-4 py-2 text-sm",
-    lg: "px-6 py-3 text-base",
-  };
-  
-  const disabledStyles = disabled || loading ? "opacity-50 cursor-not-allowed" : "";
-  
-  const buttonStyles = `${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${disabledStyles} ${className}`;
   
   return (
     <button
       type={type}
-      className={buttonStyles}
-      disabled={disabled || loading}
       onClick={onClick}
-      {...props}
+      disabled={isLoading || disabled}
+      className={`${baseClasses} ${variantClasses[variant]} ${isLoading || disabled ? 'opacity-70 cursor-not-allowed' : ''} ${fullWidth ? 'w-full' : ''} ${className}`}
     >
-      {loading && (
-        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-      )}
-      {children}
+      {isLoading ? (
+        <div className="flex items-center justify-center">
+          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Processing...
+        </div>
+      ) : children}
     </button>
   );
-}
+};
 
-export function LinkButton({
-  children,
-  to,
-  variant = "primary",
-  size = "md",
-  className = "",
-  ...props
-}) {
-  const baseStyles = "inline-flex items-center justify-center font-medium rounded-md focus:outline-none";
-  
-  const variantStyles = {
-    primary: "bg-blue-600 hover:bg-blue-700 text-white border border-transparent",
-    secondary: "bg-white hover:bg-gray-50 text-gray-700 border border-gray-300",
-    success: "bg-green-600 hover:bg-green-700 text-white border border-transparent",
-    danger: "bg-red-600 hover:bg-red-700 text-white border border-transparent",
-  };
-  
-  const sizeStyles = {
-    sm: "px-2.5 py-1.5 text-xs",
-    md: "px-4 py-2 text-sm",
-    lg: "px-6 py-3 text-base",
-  };
-  
-  const linkStyles = `${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className}`;
-  
+// Input Component with floating label
+export const Input = ({ 
+  label, 
+  id, 
+  type = "text", 
+  value, 
+  onChange, 
+  error,
+  placeholder = " ",
+  required = false,
+  className = ""
+}) => {
   return (
-    <Link
-      to={to}
-      className={linkStyles}
-      {...props}
-    >
-      {children}
-    </Link>
+    <div className={`relative ${className}`}>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        required={required}
+        className={`block px-2.5 pb-2.5 pt-4 w-full text-sm text-gray-900 bg-transparent rounded-lg border ${
+          error ? 'border-red-300 focus:border-red-500' : 'border-gray-300 focus:border-blue-600'
+        } appearance-none focus:outline-none focus:ring-0 peer`}
+      />
+      <label
+        htmlFor={id}
+        className={`absolute text-sm ${
+          error ? 'text-red-500' : 'text-gray-500'
+        } duration-300 transform -translate-y-4 scale-75 top-2 z-10 origin-[0] bg-white px-2 peer-focus:px-2 peer-placeholder-shown:scale-100 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:top-1/2 peer-focus:top-2 peer-focus:scale-75 peer-focus:-translate-y-4 left-1 peer-focus:${
+          error ? 'text-red-600' : 'text-blue-600'
+        }`}
+      >
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+    </div>
   );
-}
+};
 
-export function Card({ children, className = "" }) {
+// Card Component
+export const Card = ({ 
+  children, 
+  className = "", 
+  hover = false,
+  padding = "p-6"
+}) => {
   return (
-    <div className={`bg-white shadow rounded-lg overflow-hidden ${className}`}>
+    <div className={`bg-white rounded-xl shadow-sm border border-gray-100 ${hover ? 'card-hover' : ''} ${padding} ${className}`}>
       {children}
     </div>
   );
-}
+};
 
-export function CardHeader({ title, subtitle, action }) {
+// Empty State Component
+export const EmptyState = ({ 
+  title, 
+  description, 
+  actionText, 
+  onAction, 
+  illustration,
+  className = ""
+}) => (
+  <div className={`text-center py-12 px-4 ${className}`}>
+    {illustration && (
+      <img 
+        src={illustration}
+        alt="Empty state illustration" 
+        className="h-40 mx-auto mb-4"
+      />
+    )}
+    <h3 className="text-lg font-medium text-gray-900 mb-2">{title}</h3>
+    <p className="text-sm text-gray-500 max-w-md mx-auto mb-6">{description}</p>
+    {actionText && onAction && (
+      <Button
+        onClick={onAction}
+        variant="primary"
+      >
+        {actionText}
+      </Button>
+    )}
+  </div>
+);
+
+// Sidebar Component
+export const Sidebar = ({ user, signOut, activePath }) => {
+  const menuItems = [
+    {
+      name: 'Dashboard',
+      path: '/dashboard',
+      icon: (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      )
+    },
+    {
+      name: 'Meetings',
+      path: '/meetings',
+      icon: (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      )
+    },
+    {
+      name: 'Availability',
+      path: '/create-window',
+      icon: (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    },
+    {
+      name: 'Booking Links',
+      path: '/create-link',
+      icon: (
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
+        </svg>
+      )
+    }
+  ];
+  
   return (
-    <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-medium leading-6 text-gray-900">{title}</h3>
-          {subtitle && <p className="mt-1 text-sm text-gray-500">{subtitle}</p>}
+    <aside className="fixed inset-y-0 left-0 bg-white shadow-md max-h-screen w-60 z-10">
+      <div className="flex flex-col justify-between h-full">
+        <div className="flex-grow">
+          <div className="p-4 flex items-center justify-center border-b">
+            <h1 className="text-xl font-bold text-blue-600">ProCalender</h1>
+          </div>
+          <div className="p-4">
+            <ul className="space-y-1">
+              {menuItems.map((item) => (
+                <li key={item.path}>
+                  <a 
+                    href={item.path} 
+                    className={`flex items-center ${
+                      activePath === item.path 
+                        ? 'bg-blue-50 text-blue-600' 
+                        : 'text-gray-700 hover:bg-gray-50'
+                    } rounded-md px-4 py-3 transition`}
+                  >
+                    <span className="mr-3">{item.icon}</span>
+                    <span>{item.name}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
-        {action && <div>{action}</div>}
+        <div className="p-4 border-t">
+          <button 
+            onClick={signOut} 
+            className="flex items-center text-red-500 hover:text-red-700 px-4 py-2 rounded-md hover:bg-red-50 w-full transition"
+          >
+            <svg className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span>Sign out</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+  );
+};
+
+// Main Layout Component
+export const MainLayout = ({ children, user, activePath }) => {
+  const handleSignOut = async () => {
+    try {
+      await auth.signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Sidebar user={user} signOut={handleSignOut} activePath={activePath} />
+      <main className="ml-60 pt-4 px-8 max-w-7xl fade-in">{children}</main>
+    </div>
+  );
+};
+
+// Toast Notification Component
+export const Toast = ({ 
+  message, 
+  type = 'success', 
+  onClose,
+  duration = 3000
+}) => {
+  const backgrounds = {
+    success: 'bg-green-50 border-green-200',
+    error: 'bg-red-50 border-red-200',
+    warning: 'bg-yellow-50 border-yellow-200',
+    info: 'bg-blue-50 border-blue-200'
+  };
+  
+  const textColors = {
+    success: 'text-green-600',
+    error: 'text-red-600',
+    warning: 'text-yellow-600',
+    info: 'text-blue-600'
+  };
+  
+  const icons = {
+    success: (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      </svg>
+    ),
+    error: (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    ),
+    warning: (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+    ),
+    info: (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    )
+  };
+  
+  React.useEffect(() => {
+    if (duration && onClose) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, duration);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [duration, onClose]);
+  
+  return (
+    <div className={`fixed top-4 right-4 z-50 w-72 px-4 py-3 rounded-lg border ${backgrounds[type]} shadow-lg slide-up`}>
+      <div className="flex items-center">
+        <div className={textColors[type]}>
+          {icons[type]}
+        </div>
+        <div className="ml-3 mr-8">
+          <p className={`text-sm font-medium ${textColors[type]}`}>{message}</p>
+        </div>
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
     </div>
   );
-}
+};
 
-export function CardBody({ children, className = "" }) {
-  return (
-    <div className={`px-4 py-5 sm:p-6 ${className}`}>
-      {children}
-    </div>
-  );
-}
-
-export function CardFooter({ children, className = "" }) {
-  return (
-    <div className={`px-4 py-4 sm:px-6 bg-gray-50 border-t border-gray-200 ${className}`}>
-      {children}
-    </div>
-  );
-}
-
-export function Alert({ title, children, type = "info", dismissible, onDismiss }) {
-  const typeStyles = {
-    info: "bg-blue-50 text-blue-700",
-    success: "bg-green-50 text-green-700",
-    warning: "bg-yellow-50 text-yellow-700",
-    error: "bg-red-50 text-red-700",
-  };
-  
-  return (
-    <div className={`rounded-md p-4 ${typeStyles[type]}`}>
-      <div className="flex">
-        <div className="flex-shrink-0">
-          {type === "info" && (
-            <svg className="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2h2a1 1 0 100-2H9z" clipRule="evenodd" />
-            </svg>
-          )}
-          {type === "success" && (
-            <svg className="h-5 w-5 text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-          )}
-          {type === "warning" && (
-            <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-          )}
-          {type === "error" && (
-            <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-          )}
-        </div>
-        <div className="ml-3">
-          {title && <h3 className="text-sm font-medium">{title}</h3>}
-          <div className="text-sm mt-2">
-            {children}
-          </div>
-        </div>
-        {dismissible && (
-          <div className="ml-auto pl-3">
-            <div className="-mx-1.5 -my-1.5">
-              <button
-                type="button"
-                onClick={onDismiss}
-                className={`inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                  type === "info" ? "bg-blue-50 text-blue-500 hover:bg-blue-100 focus:ring-blue-600" :
-                  type === "success" ? "bg-green-50 text-green-500 hover:bg-green-100 focus:ring-green-600" :
-                  type === "warning" ? "bg-yellow-50 text-yellow-500 hover:bg-yellow-100 focus:ring-yellow-600" :
-                  "bg-red-50 text-red-500 hover:bg-red-100 focus:ring-red-600"
-                }`}
-              >
-                <span className="sr-only">Dismiss</span>
-                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export function FormGroup({ label, htmlFor, error, children, className = "" }) {
-  return (
-    <div className={`mb-4 ${className}`}>
-      {label && (
-        <label htmlFor={htmlFor} className="block text-sm font-medium text-gray-700 mb-1">
-          {label}
-        </label>
-      )}
-      {children}
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-    </div>
-  );
-}
-
-export function Input({
-  type = "text",
-  id,
-  name,
-  value,
-  onChange,
-  placeholder,
-  disabled = false,
-  className = "",
-  error,
-  ...props
-}) {
-  const inputClasses = `block w-full px-3 py-2 border ${
-    error ? "border-red-300 focus:ring-red-500 focus:border-red-500" : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm ${className}`;
-
-  return (
-    <input
-      type={type}
-      id={id}
-      name={name}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      disabled={disabled}
-      className={inputClasses}
-      {...props}
-    />
-  );
-}
-
-export function TextArea({
-  id,
-  name,
-  value,
-  onChange,
-  placeholder,
-  rows = 3,
-  disabled = false,
-  className = "",
-  error,
-  ...props
-}) {
-  const textareaClasses = `block w-full px-3 py-2 border ${
-    error ? "border-red-300 focus:ring-red-500 focus:border-red-500" : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-  } rounded-md shadow-sm placeholder-gray-400 focus:outline-none sm:text-sm ${className}`;
-
-  return (
-    <textarea
-      id={id}
-      name={name}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      rows={rows}
-      disabled={disabled}
-      className={textareaClasses}
-      {...props}
-    />
-  );
-}
-
-export function Select({
-  id,
-  name,
-  value,
-  onChange,
-  options,
-  placeholder,
-  disabled = false,
-  className = "",
-  error,
-  ...props
-}) {
-  const selectClasses = `block w-full pl-3 pr-10 py-2 text-base border ${
-    error ? "border-red-300 focus:ring-red-500 focus:border-red-500" : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-  } rounded-md shadow-sm focus:outline-none sm:text-sm ${className}`;
-
-  return (
-    <select
-      id={id}
-      name={name}
-      value={value}
-      onChange={onChange}
-      disabled={disabled}
-      className={selectClasses}
-      {...props}
-    >
-      {placeholder && <option value="">{placeholder}</option>}
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-export function Badge({
-  children,
-  color = "gray",
-  className = "",
-  ...props
-}) {
-  const colorClasses = {
-    gray: "bg-gray-100 text-gray-800",
-    red: "bg-red-100 text-red-800",
-    yellow: "bg-yellow-100 text-yellow-800",
-    green: "bg-green-100 text-green-800",
-    blue: "bg-blue-100 text-blue-800",
-    indigo: "bg-indigo-100 text-indigo-800",
-    purple: "bg-purple-100 text-purple-800",
-    pink: "bg-pink-100 text-pink-800",
-  };
-
-  return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${colorClasses[color]} ${className}`}
-      {...props}
-    >
-      {children}
-    </span>
-  );
-}
+// Export all components
+export default {
+  Button,
+  Input,
+  Card,
+  EmptyState,
+  Sidebar,
+  MainLayout,
+  Toast
+};
