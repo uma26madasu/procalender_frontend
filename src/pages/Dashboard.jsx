@@ -4,7 +4,10 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebase';
 
 // Import components using the barrel pattern
-import { MainLayout, Card, Button, Badge, Avatar } from '../components';
+import { MainLayout, Card, Button, Badge, Avatar, Alert, Modal } from '../components';
+
+// Import calendar service
+import { getGoogleAuthUrl } from '../services/calendar/googleCalendar';
 
 function Dashboard() {
   const [error, setError] = useState(null);
@@ -12,8 +15,38 @@ function Dashboard() {
   const [dashboardData, setDashboardData] = useState(null);
   const [user] = useAuthState(auth);
   const navigate = useNavigate();
+  
+  // Calendar integration states
+  const [isCalendarConnecting, setIsCalendarConnecting] = useState(false);
+  const [isCalendarConnected, setIsCalendarConnected] = useState(false);
+  const [calendarStats, setCalendarStats] = useState(null);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
 
-  // Rest of the Dashboard component code remains the same...
+  // Check if user has connected Google Calendar
+  useEffect(() => {
+    const checkCalendarConnection = async () => {
+      try {
+        // In a real app, this would check if the user has a valid Google Calendar connection
+        // For demo purposes, we'll simulate a check with localStorage
+        const hasCalendarTokens = localStorage.getItem('googleCalendarTokens') !== null;
+        setIsCalendarConnected(hasCalendarTokens);
+        
+        if (hasCalendarTokens) {
+          // Simulate fetching calendar stats
+          setCalendarStats({
+            connectedCalendars: 2,
+            primaryCalendar: 'Main Calendar',
+            upcomingEvents: 8,
+            lastSynced: new Date().toISOString()
+          });
+        }
+      } catch (err) {
+        console.error('Error checking calendar connection:', err);
+      }
+    };
+    
+    checkCalendarConnection();
+  }, []);
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -105,6 +138,48 @@ function Dashboard() {
     loadDashboardData();
   }, []);
   
+  // Connect to Google Calendar
+  const connectGoogleCalendar = async () => {
+    try {
+      setIsCalendarConnecting(true);
+      
+      // Get Google auth URL
+      const authUrl = await getGoogleAuthUrl();
+      
+      // Redirect to Google auth page
+      window.location.href = authUrl;
+    } catch (err) {
+      console.error('Error starting Google Auth flow:', err);
+      setError('Failed to start Google Calendar authorization. Please try again.');
+      setIsCalendarConnecting(false);
+    }
+  };
+  
+  // Disconnect Google Calendar
+  const disconnectGoogleCalendar = async () => {
+    try {
+      // In a real app, you would revoke access tokens and clear from your backend
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Clear local storage tokens
+      localStorage.removeItem('googleCalendarTokens');
+      
+      setIsCalendarConnected(false);
+      setCalendarStats(null);
+      
+      // Show success alert or message
+      setSuccessMessage('Google Calendar disconnected successfully.');
+      
+      // Close modal if open
+      setShowCalendarModal(false);
+    } catch (err) {
+      console.error('Error disconnecting calendar:', err);
+      setError('Failed to disconnect Google Calendar. Please try again.');
+    }
+  };
+  
+  const [successMessage, setSuccessMessage] = useState('');
+
   // Loading skeleton state
   if (isLoading) {
     return (
@@ -184,6 +259,16 @@ function Dashboard() {
   
   return (
     <MainLayout>
+      {/* Success Message */}
+      {successMessage && (
+        <Alert
+          type="success"
+          message={successMessage}
+          onClose={() => setSuccessMessage('')}
+          className="mb-6"
+        />
+      )}
+      
       {/* Welcome Banner */}
       <Card className="mb-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-0">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between">
@@ -308,35 +393,50 @@ function Dashboard() {
           )}
         </Card>
         
-        {/* Analytics Card */}
-        <Card className="hover:shadow-md transition-all duration-200">
+        {/* Calendar Status Card */}
+        <Card className="hover:shadow-md transition-all duration-200" onClick={() => isCalendarConnected ? setShowCalendarModal(true) : null}>
           <div className="flex items-start">
             <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
             <div className="ml-3">
-              <p className="text-sm text-gray-500">Meeting Analytics</p>
-              <p className="text-2xl font-bold text-gray-900">{Math.round((dashboardData.analytics.completedMeetings / dashboardData.analytics.totalBooked) * 100)}%</p>
+              <p className="text-sm text-gray-500">Calendar Integration</p>
+              <p className="text-lg font-bold text-gray-900">
+                {isCalendarConnected ? 'Connected' : 'Not Connected'}
+              </p>
             </div>
           </div>
-          <div className="mt-4 pt-3 border-t border-gray-100">
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <p className="text-xs text-gray-500">COMPLETED</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {dashboardData.analytics.completedMeetings} / {dashboardData.analytics.totalBooked}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">AVG. DURATION</p>
-                <p className="text-sm font-medium text-gray-900">
-                  {dashboardData.analytics.averageDuration} min
-                </p>
+          {isCalendarConnected && calendarStats ? (
+            <div className="mt-4 pt-3 border-t border-gray-100">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <p className="text-xs text-gray-500">CALENDARS</p>
+                  <p className="text-sm font-medium text-gray-900">{calendarStats.connectedCalendars}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">EVENTS</p>
+                  <p className="text-sm font-medium text-gray-900">{calendarStats.upcomingEvents}</p>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="mt-4 pt-3 border-t border-gray-100">
+              <Button
+                variant="primary"
+                size="sm"
+                className="w-full justify-center"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  connectGoogleCalendar();
+                }}
+                isLoading={isCalendarConnecting}
+              >
+                Connect Google Calendar
+              </Button>
+            </div>
+          )}
         </Card>
       </div>
       
@@ -438,31 +538,185 @@ function Dashboard() {
               </div>
             </div>
             
-            {/* Connect Calendar Card */}
-            <div className="p-4 border border-indigo-100 bg-indigo-50 rounded-lg">
-              <h4 className="text-sm font-medium text-indigo-900 mb-2">Connect Your Calendar</h4>
-              <p className="text-xs text-indigo-700 mb-3">
-                Integrate with Google Calendar to automatically block unavailable times.
-              </p>
-              <Button 
-                variant="primary" 
-                size="sm" 
-                fullWidth 
-                className="justify-center"
+            {/* Calendar Integration Card */}
+            {isCalendarConnected ? (
+              <div 
+                className="p-4 border border-green-100 bg-green-50 rounded-lg cursor-pointer"
+                onClick={() => setShowCalendarModal(true)}
               >
-                <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h4 className="text-sm font-medium text-green-800">Calendar Connected</h4>
+                    <p className="text-xs text-green-700">
+                      {calendarStats?.primaryCalendar || 'Google Calendar'} is syncing automatically
+                    </p>
+                  </div>
+                  <Badge variant="success" size="sm">Active</Badge>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 border border-indigo-100 bg-indigo-50 rounded-lg">
+                <h4 className="text-sm font-medium text-indigo-900 mb-2">Connect Your Calendar</h4>
+                <p className="text-xs text-indigo-700 mb-3">
+                  Integrate with Google Calendar to automatically block unavailable times.
+                </p>
+                <Button 
+                  variant="primary" 
+                  size="sm" 
+                  fullWidth 
+                  className="justify-center"
+                  onClick={connectGoogleCalendar}
+                  isLoading={isCalendarConnecting}
+                >
+                  <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0C5.383 0 0 5.383 0 12s5.383 12 12 12 12-5.383 12-12S18.617 0 12 0z" fill="#4285F4"/>
+                    <path d="M12 0C5.383 0 0 5.383 0 12s5.383 12 12 12 12-5.383 12-12S18.617 0 12 0z" fill="#4285F4"/>
+                    <path d="M12 4.8V0C5.383 0 0 5.383 0 12h4.8c0-3.977 3.223-7.2 7.2-7.2z" fill="#34A853"/>
+                    <path d="M19.2 12H24c0-6.617-5.383-12-12-12v4.8c3.977 0 7.2 3.223 7.2 7.2z" fill="#FBBC05"/>
+                    <path d="M12 19.2c-3.977 0-7.2-3.223-7.2-7.2H0c0 6.617 5.383 12 12 12v-4.8z" fill="#EA4335"/>
+                  </svg>
+                  Connect Google Calendar
+                </Button>
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Calendar Management Modal */}
+      <Modal
+        isOpen={showCalendarModal}
+        onClose={() => setShowCalendarModal(false)}
+        title="Calendar Integration"
+        size="lg"
+      >
+        <div className="space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b">
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-full text-blue-600">
+                <svg className="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 0C5.383 0 0 5.383 0 12s5.383 12 12 12 12-5.383 12-12S18.617 0 12 0z" fill="#4285F4"/>
                   <path d="M12 0C5.383 0 0 5.383 0 12s5.383 12 12 12 12-5.383 12-12S18.617 0 12 0z" fill="#4285F4"/>
                   <path d="M12 4.8V0C5.383 0 0 5.383 0 12h4.8c0-3.977 3.223-7.2 7.2-7.2z" fill="#34A853"/>
                   <path d="M19.2 12H24c0-6.617-5.383-12-12-12v4.8c3.977 0 7.2 3.223 7.2 7.2z" fill="#FBBC05"/>
                   <path d="M12 19.2c-3.977 0-7.2-3.223-7.2-7.2H0c0 6.617 5.383 12 12 12v-4.8z" fill="#EA4335"/>
                 </svg>
-                Connect Google Calendar
+              </div>
+              <div className="ml-3">
+                <h3 className="text-lg font-medium text-gray-900">Google Calendar</h3>
+                <p className="text-sm text-gray-500">Connected on {new Date().toLocaleDateString()}</p>
+              </div>
+            </div>
+            <Badge variant="success">Active</Badge>
+          </div>
+          
+          <div>
+            <h3 className="text-md font-medium text-gray-900 mb-3">Connected Calendars</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center">
+                  <div className="p-2 rounded-full bg-blue-100 text-blue-600">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium">{calendarStats?.primaryCalendar || 'Main Calendar'}</p>
+                    <p className="text-xs text-gray-500">Primary</p>
+                  </div>
+                </div>
+                <Badge variant="primary" size="sm">Primary</Badge>
+              </div>
+              
+              {/* Additional calendars can be added here */}
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center">
+                  <div className="p-2 rounded-full bg-purple-100 text-purple-600">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium">Work Calendar</p>
+                    <p className="text-xs text-gray-500">Secondary</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button variant="secondary" size="sm">Edit</Button>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-4">
+              <Button variant="secondary" size="sm">
+                Add Another Calendar
               </Button>
             </div>
           </div>
-        </Card>
-      </div>
+          
+          <div className="border-t pt-4">
+            <h3 className="text-md font-medium text-gray-900 mb-3">Calendar Settings</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium">Check for conflicts</p>
+                  <p className="text-xs text-gray-500">
+                    Automatically check for calendar conflicts when booking
+                  </p>
+                </div>
+                <div className="relative inline-block w-10 align-middle select-none">
+                  <input type="checkbox" id="toggle-conflict" className="sr-only" checked readOnly />
+                  <div className="block h-6 bg-gray-300 rounded-full"></div>
+                  <div className="dot absolute left-1 top-1 bg-indigo-600 w-4 h-4 rounded-full transition"></div>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium">Create calendar events</p>
+                  <p className="text-xs text-gray-500">
+                    Automatically create events when bookings are confirmed
+                  </p>
+                </div>
+                <div className="relative inline-block w-10 align-middle select-none">
+                  <input type="checkbox" id="toggle-create" className="sr-only" checked readOnly />
+                  <div className="block h-6 bg-gray-300 rounded-full"></div>
+                  <div className="dot absolute left-1 top-1 bg-indigo-600 w-4 h-4 rounded-full transition"></div>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium">Two-way sync</p>
+                  <p className="text-xs text-gray-500">
+                    Sync availability windows with Google Calendar events
+                  </p>
+                </div>
+                <div className="relative inline-block w-10 align-middle select-none">
+                  <input type="checkbox" id="toggle-sync" className="sr-only" checked readOnly />
+                  <div className="block h-6 bg-gray-300 rounded-full"></div>
+                  <div className="dot absolute left-1 top-1 bg-indigo-600 w-4 h-4 rounded-full transition"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-between pt-4 border-t">
+            <Button 
+              variant="danger" 
+              onClick={disconnectGoogleCalendar}
+            >
+              Disconnect Calendar
+            </Button>
+            <Button 
+              variant="primary"
+              onClick={() => setShowCalendarModal(false)}
+            >
+              Save Settings
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </MainLayout>
   );
 }

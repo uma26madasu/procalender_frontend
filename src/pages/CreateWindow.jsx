@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import MainLayout from '../components/layout/MainLayout';
-import { Card, Button, Alert, Badge } from '../components/UI';
+import { Card, Button, Alert, Badge, Modal, Toggle } from '../components/UI';
+
+// New imports for calendar integration
+import { getGoogleAuthUrl } from '../services/calendar/googleCalendar';
 
 export default function CreateWindow() {
   const navigate = useNavigate();
@@ -32,9 +35,44 @@ export default function CreateWindow() {
   const [success, setSuccess] = useState('');
   const [activeTab, setActiveTab] = useState('create'); // 'create' or 'manage'
 
+  // Calendar integration states
+  const [isCalendarConnected, setIsCalendarConnected] = useState(false);
+  const [syncWithCalendar, setSyncWithCalendar] = useState(true);
+  const [calendars, setCalendars] = useState([]);
+  const [selectedCalendarId, setSelectedCalendarId] = useState('primary');
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+
   const dayOptions = [
     'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
   ];
+
+  // Check if user has connected Google Calendar
+  useEffect(() => {
+    const checkCalendarConnection = async () => {
+      try {
+        // In a real app, this would check if the user has a valid Google Calendar connection
+        // For demo purposes, we'll simulate a check by adding a delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Simulate checking localStorage for tokens (in a real app, you'd check your API/backend)
+        const hasCalendarTokens = localStorage.getItem('googleCalendarTokens') !== null;
+        setIsCalendarConnected(hasCalendarTokens);
+        
+        // If connected, fetch available calendars (simulated)
+        if (hasCalendarTokens) {
+          setCalendars([
+            { id: 'primary', name: 'Main Calendar' },
+            { id: 'work', name: 'Work Calendar' },
+            { id: 'personal', name: 'Personal Events' }
+          ]);
+        }
+      } catch (err) {
+        console.error('Error checking calendar connection:', err);
+      }
+    };
+    
+    checkCalendarConnection();
+  }, []);
 
   // Generate time options in 15-minute increments
   const generateTimeOptions = () => {
@@ -60,6 +98,21 @@ export default function CreateWindow() {
     return true;
   };
 
+  // Connect Google Calendar
+  const connectGoogleCalendar = async () => {
+    try {
+      // Get the Google OAuth URL
+      const authUrl = await getGoogleAuthUrl();
+      
+      // Redirect to Google auth page
+      window.location.href = authUrl;
+    } catch (err) {
+      console.error('Error starting Google Auth flow:', err);
+      setError('Failed to start Google Calendar authorization. Please try again.');
+    }
+  };
+
+  // Create availability window and sync with Google Calendar if enabled
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -80,10 +133,7 @@ export default function CreateWindow() {
         throw new Error('User not authenticated');
       }
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In a real app, you would send this data to your API
+      // Create new window object
       const newWindow = {
         id: `w${Date.now()}`, // Generate a temporary ID
         dayOfWeek,
@@ -91,6 +141,11 @@ export default function CreateWindow() {
         endHour,
         name: name || undefined
       };
+      
+      // If calendar sync is enabled and user has connected Google Calendar
+      if (syncWithCalendar && isCalendarConnected) {
+        await syncWindowWithCalendar(newWindow);
+      }
       
       // Update local state with new window
       setWindows([...windows, newWindow]);
@@ -112,13 +167,35 @@ export default function CreateWindow() {
     }
   };
 
+  // Sync window with Google Calendar
+  const syncWindowWithCalendar = async (window) => {
+    try {
+      // In a real app, this would create a recurring event in Google Calendar
+      // Simulating API delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      console.log(`Created recurring event in Google Calendar for ${window.dayOfWeek} from ${window.startHour} to ${window.endHour}`);
+      return true;
+    } catch (err) {
+      console.error('Error syncing with Google Calendar:', err);
+      throw new Error('Failed to sync with Google Calendar. The window was saved but calendar sync failed.');
+    }
+  };
+
   const handleDelete = async (windowId) => {
     if (window.confirm('Are you sure you want to delete this availability window?')) {
       try {
         setIsSubmitting(true);
         
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Get the window to delete
+        const windowToDelete = windows.find(w => w.id === windowId);
+        
+        // If window was synced with calendar, remove the calendar event too
+        if (syncWithCalendar && isCalendarConnected && windowToDelete) {
+          // In a real app, this would delete the recurring event from Google Calendar
+          await new Promise(resolve => setTimeout(resolve, 500));
+          console.log(`Deleted recurring event in Google Calendar for ${windowToDelete.dayOfWeek}`);
+        }
         
         // Filter out the deleted window
         setWindows(windows.filter(window => window.id !== windowId));
@@ -193,6 +270,36 @@ export default function CreateWindow() {
           onClose={() => setSuccess('')}
           className="mb-6"
         />
+      )}
+
+      {/* Calendar Connection Banner - Show if not connected */}
+      {!isCalendarConnected && (
+        <Card className="mb-6 bg-blue-50 border border-blue-100">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 className="text-md font-semibold text-blue-800">Connect Google Calendar</h3>
+              <p className="mt-1 text-sm text-blue-700">
+                Connect your Google Calendar to automatically sync availability windows and prevent double bookings.
+              </p>
+            </div>
+            <div className="mt-4 md:mt-0">
+              <Button 
+                onClick={connectGoogleCalendar}
+                variant="primary"
+                size="sm"
+              >
+                <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0C5.383 0 0 5.383 0 12s5.383 12 12 12 12-5.383 12-12S18.617 0 12 0z" fill="#4285F4"/>
+                  <path d="M12 0C5.383 0 0 5.383 0 12s5.383 12 12 12 12-5.383 12-12S18.617 0 12 0z" fill="#4285F4"/>
+                  <path d="M12 4.8V0C5.383 0 0 5.383 0 12h4.8c0-3.977 3.223-7.2 7.2-7.2z" fill="#34A853"/>
+                  <path d="M19.2 12H24c0-6.617-5.383-12-12-12v4.8c3.977 0 7.2 3.223 7.2 7.2z" fill="#FBBC05"/>
+                  <path d="M12 19.2c-3.977 0-7.2-3.223-7.2-7.2H0c0 6.617 5.383 12 12 12v-4.8z" fill="#EA4335"/>
+                </svg>
+                Connect Google Calendar
+              </Button>
+            </div>
+          </div>
+        </Card>
       )}
       
       {/* Create Availability Form */}
@@ -269,6 +376,55 @@ export default function CreateWindow() {
                 </select>
               </div>
             </div>
+
+            {/* Calendar Sync Option - Only show if connected */}
+            {isCalendarConnected && (
+              <div className="border-t border-gray-200 pt-4">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-sm font-medium text-gray-700">Calendar Sync Options</h3>
+                  <Button 
+                    variant="link" 
+                    size="sm" 
+                    onClick={() => setShowCalendarModal(true)}
+                  >
+                    Manage Calendars
+                  </Button>
+                </div>
+                
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">Sync with Google Calendar</p>
+                    <p className="text-xs text-gray-500">
+                      Create recurring events in your calendar to block this time each week
+                    </p>
+                  </div>
+                  <Toggle
+                    enabled={syncWithCalendar}
+                    onChange={setSyncWithCalendar}
+                  />
+                </div>
+                
+                {syncWithCalendar && (
+                  <div className="mt-3">
+                    <label htmlFor="calendarId" className="block text-sm font-medium text-gray-700 mb-1">
+                      Select Calendar
+                    </label>
+                    <select
+                      id="calendarId"
+                      value={selectedCalendarId}
+                      onChange={(e) => setSelectedCalendarId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      {calendars.map((calendar) => (
+                        <option key={calendar.id} value={calendar.id}>
+                          {calendar.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
             
             {/* Preview Card */}
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
@@ -287,6 +443,15 @@ export default function CreateWindow() {
                   })()}
                 </span>
               </div>
+              {isCalendarConnected && syncWithCalendar && (
+                <div className="mt-2 text-xs text-indigo-600 flex items-center">
+                  <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Will be synced with{" "}
+                  {calendars.find(c => c.id === selectedCalendarId)?.name || "Google Calendar"}
+                </div>
+              )}
             </div>
             
             <div className="flex justify-end space-x-3 pt-4">
@@ -425,6 +590,90 @@ export default function CreateWindow() {
           </div>
         </Card>
       </div>
+
+      {/* Calendar Selection Modal */}
+      <Modal
+        isOpen={showCalendarModal}
+        onClose={() => setShowCalendarModal(false)}
+        title="Manage Calendar Integration"
+        size="lg"
+      >
+        <div className="space-y-6">
+          <div className="border-b pb-4">
+            <h3 className="text-md font-medium text-gray-900 mb-2">Connected Calendars</h3>
+            {calendars.length > 0 ? (
+              <div className="space-y-3">
+                {calendars.map(calendar => (
+                  <div key={calendar.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center">
+                      <div className="p-2 rounded-full bg-blue-100 text-blue-600">
+                        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium">{calendar.name}</p>
+                        <p className="text-xs text-gray-500">Google Calendar</p>
+                      </div>
+                    </div>
+                    <Toggle
+                      enabled={true}
+                      onChange={() => {}}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">No calendars connected yet.</p>
+            )}
+            <div className="mt-4">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={connectGoogleCalendar}
+              >
+                Add Another Calendar
+              </Button>
+            </div>
+          </div>
+          
+          <div>
+            <h3 className="text-md font-medium text-gray-900 mb-2">Calendar Sync Settings</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label htmlFor="autoSync" className="text-sm text-gray-700">
+                  Automatically sync new availability windows
+                </label>
+                <Toggle
+                  enabled={syncWithCalendar}
+                  onChange={setSyncWithCalendar}
+                  id="autoSync"
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <label htmlFor="blockConflicts" className="text-sm text-gray-700">
+                  Block time slots with existing calendar events
+                </label>
+                <Toggle
+                  enabled={true}
+                  onChange={() => {}}
+                  id="blockConflicts"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-end pt-4 border-t border-gray-200">
+            <Button
+              variant="primary"
+              onClick={() => setShowCalendarModal(false)}
+            >
+              Save Settings
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </MainLayout>
   );
 }

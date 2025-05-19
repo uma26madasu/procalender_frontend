@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import MainLayout from '../components/layout/MainLayout';
-import { Card, Button, Alert, Badge, Modal } from '../components/UI';
+import { Card, Button, Alert, Badge, Modal, Toggle } from '../components/UI';
 
 export default function CreateLink() {
   const navigate = useNavigate();
@@ -27,6 +27,14 @@ export default function CreateLink() {
   const [showUrlModal, setShowUrlModal] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   
+  // Calendar integration states
+  const [isCalendarConnected, setIsCalendarConnected] = useState(false);
+  const [calendars, setCalendars] = useState([]);
+  const [selectedCalendarIds, setSelectedCalendarIds] = useState(['primary']);
+  const [checkCalendarConflicts, setCheckCalendarConflicts] = useState(true);
+  const [createCalendarEvents, setCreateCalendarEvents] = useState(true);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  
   // Example URL 
   const [previewUrl, setPreviewUrl] = useState('');
   
@@ -40,6 +48,31 @@ export default function CreateLink() {
     { value: 120, label: '2 hours' }
   ];
   
+  // Check if user has connected Google Calendar
+  useEffect(() => {
+    const checkCalendarConnection = async () => {
+      try {
+        // In a real app, this would check if the user has a valid Google Calendar connection
+        // For demo purposes, we'll simulate a check with localStorage
+        const hasCalendarTokens = localStorage.getItem('googleCalendarTokens') !== null;
+        setIsCalendarConnected(hasCalendarTokens);
+        
+        if (hasCalendarTokens) {
+          // Simulate fetching available calendars
+          setCalendars([
+            { id: 'primary', name: 'Main Calendar', primary: true },
+            { id: 'work', name: 'Work Calendar', primary: false },
+            { id: 'personal', name: 'Personal Events', primary: false }
+          ]);
+        }
+      } catch (err) {
+        console.error('Error checking calendar connection:', err);
+      }
+    };
+    
+    checkCalendarConnection();
+  }, []);
+  
   // Generate preview URL when meetingName changes
   useEffect(() => {
     if (meetingName) {
@@ -52,6 +85,17 @@ export default function CreateLink() {
       setPreviewUrl('');
     }
   }, [meetingName]);
+  
+  // Toggle calendar selection
+  const toggleCalendarSelection = (calendarId) => {
+    setSelectedCalendarIds(prev => {
+      if (prev.includes(calendarId)) {
+        return prev.filter(id => id !== calendarId);
+      } else {
+        return [...prev, calendarId];
+      }
+    });
+  };
   
   // Add a new custom question
   const addQuestion = () => {
@@ -78,6 +122,28 @@ export default function CreateLink() {
     return tomorrow.toISOString().split('T')[0];
   };
 
+  // Connect to Google Calendar
+  const connectGoogleCalendar = async () => {
+    try {
+      // In a real app, this would redirect to Google OAuth flow
+      // For demo, we'll simulate by setting a localStorage flag
+      localStorage.setItem('googleCalendarTokens', 'dummy-token');
+      setIsCalendarConnected(true);
+      
+      // Simulate fetching calendars
+      setCalendars([
+        { id: 'primary', name: 'Main Calendar', primary: true },
+        { id: 'work', name: 'Work Calendar', primary: false },
+        { id: 'personal', name: 'Personal Events', primary: false }
+      ]);
+      
+      setSuccessMessage('Google Calendar connected successfully!');
+    } catch (err) {
+      console.error('Error connecting to Google Calendar:', err);
+      setError('Failed to connect Google Calendar. Please try again.');
+    }
+  };
+
   // Handle form submission
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
@@ -97,16 +163,29 @@ export default function CreateLink() {
         throw new Error('Meeting name is required');
       }
       
-      // Simulate API call
+      // If calendar integration is enabled, check if we need to verify calendar conflicts
+      if (isCalendarConnected && checkCalendarConflicts) {
+        // Simulate checking for calendar conflicts
+        await checkForCalendarConflicts();
+      }
+      
+      // Simulate API call to create the booking link
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       // Generate a random link ID for demo purposes
       const linkId = Math.random().toString(36).substring(2, 10);
       
+      // If calendar integration is enabled, set up creation of calendar events for bookings
+      if (isCalendarConnected && createCalendarEvents) {
+        // In a real app, you would store calendar settings with the booking link
+        console.log('Calendar events will be created on booking for calendars:', selectedCalendarIds);
+      }
+      
       // Success! In a real app, the API would return the created link data
       setSuccessData({
         linkId,
-        linkUrl: previewUrl
+        linkUrl: previewUrl,
+        calendarIntegration: isCalendarConnected && createCalendarEvents
       });
       
       // Skip to success view
@@ -119,6 +198,13 @@ export default function CreateLink() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Simulate checking for calendar conflicts
+  const checkForCalendarConflicts = async () => {
+    // In a real app, this would check for conflicts in the selected calendars
+    await new Promise(resolve => setTimeout(resolve, 800));
+    return true; // No conflicts found
   };
 
   // Copy URL to clipboard
@@ -193,6 +279,20 @@ export default function CreateLink() {
           {successMessage && (
             <div className="mb-6 p-2 bg-green-50 text-green-600 text-sm rounded-md animate-slideInUp">
               {successMessage}
+            </div>
+          )}
+          
+          {successData.calendarIntegration && (
+            <div className="mb-6 p-3 bg-blue-50 border border-blue-100 rounded-lg text-left">
+              <div className="flex items-center">
+                <svg className="h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span className="text-sm font-medium text-blue-800">Calendar Integration Active</span>
+              </div>
+              <p className="text-xs text-blue-700 ml-7 mt-1">
+                Bookings will automatically create events in your Google Calendar
+              </p>
             </div>
           )}
           
@@ -300,6 +400,16 @@ export default function CreateLink() {
           type="error"
           message={error}
           onClose={() => setError('')}
+          className="mb-6"
+        />
+      )}
+      
+      {/* Success Message */}
+      {successMessage && (
+        <Alert
+          type="success"
+          message={successMessage}
+          onClose={() => setSuccessMessage('')}
           className="mb-6"
         />
       )}
@@ -422,211 +532,360 @@ export default function CreateLink() {
                     </p>
                   </div>
                 </div>
+                
+                {/* Calendar Integration Section */}
+                {isCalendarConnected ? (
+                  <div className="border-t border-gray-200 pt-4 mt-3">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-sm font-medium text-gray-700">Calendar Integration</h3>
+                      <Button 
+                        variant="link" 
+                        size="sm"
+                        onClick={() => setShowCalendarModal(true)}
+                      >
+                        Configure Calendars
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">Check calendar conflicts</p>
+                          <p className="text-xs text-gray-500">
+                            Prevent double bookings by checking your calendar
+                          </p>
+                        </div>
+                        <Toggle
+                          enabled={checkCalendarConflicts}
+                          onChange={setCheckCalendarConflicts}
+                        />
+                      </div>
+                      
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">Create calendar events</p>
+                          <p className="text-xs text-gray-500">
+                            Automatically create events when bookings are made
+                          </p>
+                        </div>
+                        <Toggle
+                          enabled={createCalendarEvents}
+                          onChange={setCreateCalendarEvents}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border-t border-gray-200 pt-4 mt-3">
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                      <div className="flex items-center">
+                        <svg className="h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span className="text-sm font-medium text-blue-800">Calendar Integration (Optional)</span>
+                      </div>
+                      <p className="text-xs text-blue-700 ml-7 mt-1">
+                        Connect your Google Calendar to prevent double bookings and automatically create events
+                      </p>
+                      <div className="mt-3 ml-7">
+                        <Button
+                          size="sm"
+                          onClick={connectGoogleCalendar}
+                        >
+                          Connect Google Calendar
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-end pt-4">
+                <Button
+                  onClick={goToNextStep}
+                  className="w-full sm:w-auto"
+                >
+                  Continue to Questions
+                </Button>
               </div>
             </form>
           </div>
         )}
         
-        {/* Step 2: Custom Questions */}
+        {/* Step 2: Questions */}
         {step === 2 && (
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Custom Questions</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Booking Questions</h2>
+            
             <p className="text-gray-600 mb-6">
-              Add questions that will be asked when someone books a meeting with you.
+              Add questions that your clients will answer when booking a meeting. This helps you prepare and makes meetings more productive.
             </p>
             
-            <div className="space-y-6">
+            <div className="mb-8">
               <div className="space-y-4">
                 {questions.map((question, index) => (
-                  <div key={question.id} className="flex items-start space-x-2">
-                    <div className="flex-grow">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Question {index + 1}
-                      </label>
-                      <div className="flex">
+                  <div key={question.id} className="relative p-4 border border-gray-200 rounded-lg bg-white">
+                    <div className="flex items-start">
+                      <div className="flex-grow">
+                        <div className="flex items-center mb-1">
+                          <Badge color="gray" className="mr-2">Question {index + 1}</Badge>
+                          {index === 0 && <Badge color="blue">Required</Badge>}
+                        </div>
                         <input
                           type="text"
                           value={question.label}
                           onChange={(e) => updateQuestion(question.id, e.target.value)}
-                          className="flex-grow px-3 py-2 border border-gray-300 rounded-l-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
                           placeholder="Enter your question"
                         />
-                        <button
-                          type="button"
+                      </div>
+                      
+                      {index > 0 && (
+                        <button 
                           onClick={() => removeQuestion(question.id)}
-                          className="bg-gray-100 border border-gray-300 border-l-0 rounded-r-lg px-3 text-gray-600 hover:bg-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                          className="ml-3 p-1 text-gray-400 hover:text-red-500 transition-colors"
+                          title="Remove question"
                         >
                           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
                         </button>
-                      </div>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Add Another Question
-                </label>
-                <div className="flex">
+              <div className="mt-4">
+                <div className="flex items-center">
                   <input
                     type="text"
                     value={newQuestion}
                     onChange={(e) => setNewQuestion(e.target.value)}
-                    className="flex-grow px-3 py-2 border border-gray-300 rounded-l-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Enter a new question"
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter' && newQuestion.trim()) {
-                        e.preventDefault();
-                        addQuestion();
-                      }
-                    }}
+                    className="flex-grow px-3 py-2 border border-gray-300 rounded-lg rounded-r-none shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Add a new question..."
+                    onKeyPress={(e) => e.key === 'Enter' && addQuestion()}
                   />
-                  <button
-                    type="button"
+                  <Button
                     onClick={addQuestion}
                     disabled={!newQuestion.trim()}
-                    className="bg-indigo-600 text-white px-4 rounded-r-lg hover:bg-indigo-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="rounded-l-none"
                   >
-                    Add
-                  </button>
+                    Add Question
+                  </Button>
                 </div>
               </div>
-              
-              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-blue-800 mb-2">Question Tips</h3>
-                <ul className="text-sm text-blue-700 space-y-1 list-disc list-inside">
-                  <li>Ask specific questions to get more useful information</li>
-                  <li>Avoid questions that are too complex or time-consuming</li>
-                  <li>Consider what information you need before the meeting</li>
-                  <li>Limited to 5 questions to respect your client's time</li>
-                </ul>
-              </div>
+            </div>
+            
+            <div className="flex justify-between pt-4 border-t border-gray-200">
+              <Button
+                variant="secondary"
+                onClick={goToPreviousStep}
+              >
+                Back
+              </Button>
+              <Button
+                onClick={goToNextStep}
+              >
+                Continue to Review
+              </Button>
             </div>
           </div>
         )}
         
-        {/* Step 3: Review and Create */}
+        {/* Step 3: Preview & Create */}
         {step === 3 && (
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">Review & Create Link</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Review & Create</h2>
             
-            <div className="space-y-6">
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Meeting Details</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Meeting Name</p>
-                    <p className="text-gray-900">{meetingName}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Meeting Length</p>
-                    <p className="text-gray-900">
-                      {meetingLengthOptions.find(opt => opt.value === meetingLength)?.label || `${meetingLength} minutes`}
-                    </p>
+            <div className="mb-8 space-y-6">
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-gray-50 p-4 border-b border-gray-200">
+                  <h3 className="text-lg font-medium text-gray-900">Meeting Details</h3>
+                </div>
+                <div className="p-4 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Meeting Name</p>
+                      <p className="text-sm text-gray-900">{meetingName}</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Meeting Length</p>
+                      <p className="text-sm text-gray-900">
+                        {meetingLengthOptions.find(opt => opt.value === meetingLength)?.label || `${meetingLength} minutes`}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Max Days in Advance</p>
+                      <p className="text-sm text-gray-900">{maxAdvanceDays} days</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">Usage Limit</p>
+                      <p className="text-sm text-gray-900">{usageLimit === 0 ? 'Unlimited' : usageLimit}</p>
+                    </div>
+                    
+                    {expirationDate && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Expiration Date</p>
+                        <p className="text-sm text-gray-900">{new Date(expirationDate).toLocaleDateString()}</p>
+                      </div>
+                    )}
                   </div>
                   
                   {description && (
-                    <div className="md:col-span-2">
-                      <p className="text-sm font-medium text-gray-500">Description</p>
-                      <p className="text-gray-900">{description}</p>
-                    </div>
-                  )}
-                  
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Max Days in Advance</p>
-                    <p className="text-gray-900">{maxAdvanceDays} days</p>
-                  </div>
-                  
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Usage Limit</p>
-                    <p className="text-gray-900">{usageLimit === 0 ? 'Unlimited' : usageLimit}</p>
-                  </div>
-                  
-                  {expirationDate && (
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">Expiration Date</p>
-                      <p className="text-gray-900">{new Date(expirationDate).toLocaleDateString()}</p>
+                    <div className="pt-3 border-t border-gray-200">
+                      <p className="text-sm font-medium text-gray-500 mb-1">Description</p>
+                      <p className="text-sm text-gray-900">{description}</p>
                     </div>
                   )}
                 </div>
               </div>
               
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Custom Questions</h3>
-                
-                {questions.length > 0 ? (
-                  <ul className="space-y-3">
-                    {questions.map((question, index) => (
-                      <li key={question.id} className="flex items-center">
-                        <Badge variant="secondary" size="sm" className="mr-3">{index + 1}</Badge>
-                        <span className="text-gray-900">{question.label}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-500">No custom questions added.</p>
-                )}
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-gray-50 p-4 border-b border-gray-200">
+                  <h3 className="text-lg font-medium text-gray-900">Booking Questions</h3>
+                </div>
+                <div className="p-4">
+                  {questions.length === 0 ? (
+                    <p className="text-sm text-gray-500">No questions added.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {questions.map((question, index) => (
+                        <li key={question.id} className="flex items-start">
+                          <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-gray-200 text-gray-600 text-xs font-medium mr-2 mt-0.5">{index + 1}</span>
+                          <span className="text-sm text-gray-900">{question.label}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
               
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Booking Link Preview</h3>
-                <p className="text-gray-500 mb-4">Your booking link will look like this:</p>
-                
-                <div className="bg-gray-50 p-3 rounded border border-gray-200 text-indigo-600 break-all font-mono text-sm">
-                  {previewUrl || 'https://slotify.app/book/your-unique-link'}
+              {isCalendarConnected && (
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 p-4 border-b border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900">Calendar Integration</h3>
+                  </div>
+                  <div className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm text-gray-900">Check for calendar conflicts</p>
+                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${checkCalendarConflicts ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                          {checkCalendarConflicts ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm text-gray-900">Create calendar events</p>
+                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${createCalendarEvents ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                          {createCalendarEvents ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                      
+                      {selectedCalendarIds.length > 0 && createCalendarEvents && (
+                        <div className="pt-2">
+                          <p className="text-sm font-medium text-gray-500 mb-1">Selected Calendars:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedCalendarIds.map(calId => {
+                              const calendar = calendars.find(cal => cal.id === calId);
+                              return (
+                                <span key={calId} className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">
+                                  {calendar?.name || calId}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-gray-50 p-4 border-b border-gray-200">
+                  <h3 className="text-lg font-medium text-gray-900">Booking Link Preview</h3>
+                </div>
+                <div className="p-4">
+                  <p className="text-sm text-gray-600 mb-2">
+                    This is the link your clients will use to book meetings with you:
+                  </p>
+                  <div className="flex items-center p-2 bg-gray-50 border border-gray-300 rounded-lg">
+                    <span className="text-sm font-mono text-indigo-600 truncate">
+                      {previewUrl}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
+            
+            <div className="flex justify-between pt-4 border-t border-gray-200">
+              <Button
+                variant="secondary"
+                onClick={goToPreviousStep}
+              >
+                Back
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                isLoading={isSubmitting}
+                loadingText="Creating..."
+              >
+                Create Booking Link
+              </Button>
+            </div>
           </div>
         )}
-        
-        {/* Form Navigation Buttons */}
-        <div className="flex justify-between mt-8 pt-4 border-t border-gray-200">
-          {step > 1 ? (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={goToPreviousStep}
-              disabled={isSubmitting}
-            >
-              Back
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => navigate('/dashboard')}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-          )}
-          
-          {step < 3 ? (
-            <Button
-              type="button"
-              onClick={goToNextStep}
-              disabled={isSubmitting}
-            >
-              Continue
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              onClick={handleSubmit}
-              isLoading={isSubmitting}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Creating...' : 'Create Booking Link'}
-            </Button>
-          )}
-        </div>
       </Card>
+      
+      {/* Calendar Modal */}
+      <Modal
+        isOpen={showCalendarModal}
+        onClose={() => setShowCalendarModal(false)}
+        title="Configure Calendars"
+      >
+        <div className="space-y-6">
+          <div className="text-sm text-gray-500 mb-4">
+            Select the calendars you want to use for booking availability and event creation.
+          </div>
+          
+          <div className="space-y-3">
+            {calendars.map(calendar => (
+              <div key={calendar.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id={`calendar-${calendar.id}`}
+                    checked={selectedCalendarIds.includes(calendar.id)}
+                    onChange={() => toggleCalendarSelection(calendar.id)}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor={`calendar-${calendar.id}`} className="ml-2 text-sm font-medium text-gray-700">
+                    {calendar.name}
+                    {calendar.primary && (
+                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
+                        Primary
+                      </span>
+                    )}
+                  </label>
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          <div className="flex justify-end">
+            <Button
+              variant="secondary"
+              onClick={() => setShowCalendarModal(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </MainLayout>
   );
 }
