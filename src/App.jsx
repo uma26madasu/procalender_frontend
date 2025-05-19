@@ -10,6 +10,7 @@ import MeetingViewer from './pages/MeetingViewer';
 import CreateWindow from './pages/CreateWindow';
 import CreateLink from './pages/CreateLink';
 import PublicScheduler from './pages/PublicScheduler';
+import ApprovalsPage from './pages/ApprovalsPage';
 
 // Import components using the barrel pattern
 import { Card, Button, SlotifyLogo, ProtectedRoute } from './components';
@@ -18,8 +19,6 @@ function App() {
   const [authInitialized, setAuthInitialized] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [user, loading] = useAuthState(auth);
-  
-  // Rest of the App component code remains the same...
   
   useEffect(() => {
     // Add timeout to prevent infinite loading
@@ -121,6 +120,18 @@ function App() {
       <Route path="/create-link" element={
         <ProtectedRoute>
           <CreateLink />
+        </ProtectedRoute>
+      } />
+      
+      {/* Approval Workflow Routes */}
+      <Route path="/approvals" element={
+        <ProtectedRoute>
+          <ApprovalsPage />
+        </ProtectedRoute>
+      } />
+      <Route path="/approvals/:approvalId" element={
+        <ProtectedRoute>
+          <ApprovalsPage />
         </ProtectedRoute>
       } />
       

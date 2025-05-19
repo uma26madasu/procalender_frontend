@@ -22,17 +22,21 @@ function Dashboard() {
   const [calendarStats, setCalendarStats] = useState(null);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
 
+  // Approval workflow states
+  const [pendingApprovals, setPendingApprovals] = useState([]);
+  const [isLoadingApprovals, setIsLoadingApprovals] = useState(true);
+  const [selectedForRejection, setSelectedForRejection] = useState(null);
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+
   // Check if user has connected Google Calendar
   useEffect(() => {
     const checkCalendarConnection = async () => {
       try {
-        // In a real app, this would check if the user has a valid Google Calendar connection
-        // For demo purposes, we'll simulate a check with localStorage
         const hasCalendarTokens = localStorage.getItem('googleCalendarTokens') !== null;
         setIsCalendarConnected(hasCalendarTokens);
         
         if (hasCalendarTokens) {
-          // Simulate fetching calendar stats
           setCalendarStats({
             connectedCalendars: 2,
             primaryCalendar: 'Main Calendar',
@@ -48,13 +52,52 @@ function Dashboard() {
     checkCalendarConnection();
   }, []);
 
+  // Fetch pending approvals
+  useEffect(() => {
+    const fetchPendingApprovals = async () => {
+      try {
+        // Simulated API call with timeout
+        setTimeout(() => {
+          // Mock data
+          setPendingApprovals([
+            {
+              id: 'pa1',
+              clientName: 'Alex Johnson',
+              clientEmail: 'alex@example.com',
+              meetingName: 'Strategy Session',
+              date: '2025-05-26',
+              time: '10:00 AM',
+              submittedAt: '2025-05-19T15:30:00Z'
+            },
+            {
+              id: 'pa2',
+              clientName: 'Emma Wilson',
+              clientEmail: 'emma@example.com',
+              meetingName: 'Initial Consultation',
+              date: '2025-05-27',
+              time: '2:00 PM',
+              submittedAt: '2025-05-19T16:45:00Z'
+            }
+          ]);
+          setIsLoadingApprovals(false);
+        }, 1200);
+      } catch (err) {
+        console.error('Error fetching approval requests:', err);
+        setIsLoadingApprovals(false);
+      }
+    };
+    
+    if (user) {
+      fetchPendingApprovals();
+    }
+  }, [user]);
+
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
         setIsLoading(true);
         
-        // In a real implementation, fetch this data from your API
-        // For now, we'll simulate loading with a timeout
+        // Simulate loading with a timeout
         setTimeout(() => {
           setDashboardData({
             meetings: {
@@ -127,7 +170,6 @@ function Dashboard() {
           });
           setIsLoading(false);
         }, 1000);
-        
       } catch (err) {
         console.error("Dashboard error:", err);
         setError(err.message || "An error occurred loading the dashboard");
@@ -142,11 +184,7 @@ function Dashboard() {
   const connectGoogleCalendar = async () => {
     try {
       setIsCalendarConnecting(true);
-      
-      // Get Google auth URL
       const authUrl = await getGoogleAuthUrl();
-      
-      // Redirect to Google auth page
       window.location.href = authUrl;
     } catch (err) {
       console.error('Error starting Google Auth flow:', err);
@@ -158,26 +196,55 @@ function Dashboard() {
   // Disconnect Google Calendar
   const disconnectGoogleCalendar = async () => {
     try {
-      // In a real app, you would revoke access tokens and clear from your backend
       await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Clear local storage tokens
       localStorage.removeItem('googleCalendarTokens');
-      
       setIsCalendarConnected(false);
       setCalendarStats(null);
-      
-      // Show success alert or message
       setSuccessMessage('Google Calendar disconnected successfully.');
-      
-      // Close modal if open
       setShowCalendarModal(false);
     } catch (err) {
       console.error('Error disconnecting calendar:', err);
       setError('Failed to disconnect Google Calendar. Please try again.');
     }
   };
-  
+
+  // Handle approval of booking request
+  const handleApprove = async (approvalId) => {
+    try {
+      // In a real app, this would call your API to approve the booking
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Remove from pending approvals
+      setPendingApprovals(pendingApprovals.filter(a => a.id !== approvalId));
+      
+      setSuccessMessage('Booking request approved successfully!');
+    } catch (err) {
+      console.error('Error approving booking:', err);
+      setError('Failed to approve booking request. Please try again.');
+    }
+  };
+
+  // Handle rejection of booking request
+  const handleReject = async () => {
+    try {
+      if (!selectedForRejection) return;
+      
+      // In a real app, this would call your API to reject the booking
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Remove from pending approvals
+      setPendingApprovals(pendingApprovals.filter(a => a.id !== selectedForRejection));
+      
+      setSuccessMessage('Booking request rejected successfully.');
+      setSelectedForRejection(null);
+      setShowRejectionModal(false);
+      setRejectionReason('');
+    } catch (err) {
+      console.error('Error rejecting booking:', err);
+      setError('Failed to reject booking request. Please try again.');
+    }
+  };
+
   const [successMessage, setSuccessMessage] = useState('');
 
   // Loading skeleton state
@@ -439,7 +506,79 @@ function Dashboard() {
           )}
         </Card>
       </div>
-      
+
+      {/* Pending Approvals Section */}
+      {!isLoadingApprovals && pendingApprovals.length > 0 && (
+        <Card className="mb-6">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center">
+              <Badge variant="warning" className="mr-2">
+                {pendingApprovals.length}
+              </Badge>
+              <h3 className="text-lg font-medium text-gray-900">Pending Approval Requests</h3>
+            </div>
+            <Button 
+              variant="link" 
+              size="sm" 
+              onClick={() => navigate('/approvals')}
+            >
+              View all
+            </Button>
+          </div>
+          
+          <div className="space-y-4">
+            {pendingApprovals.map((approval) => (
+              <div 
+                key={approval.id} 
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-orange-100 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors cursor-pointer"
+                onClick={() => navigate(`/approvals/${approval.id}`)}
+              >
+                <div className="flex items-start">
+                  <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-700 font-medium">
+                    {approval.clientName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="ml-3">
+                    <p className="font-medium text-gray-900">{approval.clientName}</p>
+                    <p className="text-sm text-gray-500">{approval.clientEmail}</p>
+                  </div>
+                </div>
+                
+                <div className="mt-3 sm:mt-0 sm:ml-4">
+                  <p className="font-medium text-gray-900">{approval.meetingName}</p>
+                  <p className="text-sm text-gray-500">
+                    {approval.date} at {approval.time}
+                  </p>
+                </div>
+                
+                <div className="mt-3 sm:mt-0 flex space-x-2">
+                  <Button
+                    size="sm"
+                    variant="success"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleApprove(approval.id);
+                    }}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedForRejection(approval.id);
+                      setShowRejectionModal(true);
+                    }}
+                  >
+                    Reject
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {/* Two Column Layout for Recent Activity and Quick Actions */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Recent Activity Feed */}
@@ -628,7 +767,6 @@ function Dashboard() {
                 <Badge variant="primary" size="sm">Primary</Badge>
               </div>
               
-              {/* Additional calendars can be added here */}
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center">
                   <div className="p-2 rounded-full bg-purple-100 text-purple-600">
@@ -713,6 +851,52 @@ function Dashboard() {
               onClick={() => setShowCalendarModal(false)}
             >
               Save Settings
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Rejection Modal */}
+      <Modal
+        isOpen={showRejectionModal}
+        onClose={() => {
+          setShowRejectionModal(false);
+          setRejectionReason('');
+        }}
+        title="Reject Booking Request"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">Are you sure you want to reject this booking request?</p>
+          
+          <div>
+            <label htmlFor="rejectionReason" className="block text-sm font-medium text-gray-700 mb-1">
+              Reason for rejection (optional)
+            </label>
+            <textarea
+              id="rejectionReason"
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              rows="3"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Provide a reason for rejection..."
+            ></textarea>
+          </div>
+          
+          <div className="flex justify-end space-x-3 pt-2">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowRejectionModal(false);
+                setRejectionReason('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleReject}
+            >
+              Confirm Rejection
             </Button>
           </div>
         </div>

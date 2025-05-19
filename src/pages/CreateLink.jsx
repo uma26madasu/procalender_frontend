@@ -19,6 +19,15 @@ export default function CreateLink() {
     { id: `q${Date.now()}`, label: 'What topics would you like to discuss?' }
   ]);
   
+  // Approval workflow
+  const [requiresApproval, setRequiresApproval] = useState(false);
+  const [approvers, setApprovers] = useState([]);
+  const [teamMembers] = useState([
+    { id: '1', name: 'John Doe', email: 'john@example.com' },
+    { id: '2', name: 'Jane Smith', email: 'jane@example.com' },
+    { id: '3', name: 'Mike Johnson', email: 'mike@example.com' }
+  ]);
+  
   // UI states
   const [newQuestion, setNewQuestion] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,13 +61,10 @@ export default function CreateLink() {
   useEffect(() => {
     const checkCalendarConnection = async () => {
       try {
-        // In a real app, this would check if the user has a valid Google Calendar connection
-        // For demo purposes, we'll simulate a check with localStorage
         const hasCalendarTokens = localStorage.getItem('googleCalendarTokens') !== null;
         setIsCalendarConnected(hasCalendarTokens);
         
         if (hasCalendarTokens) {
-          // Simulate fetching available calendars
           setCalendars([
             { id: 'primary', name: 'Main Calendar', primary: true },
             { id: 'work', name: 'Work Calendar', primary: false },
@@ -125,12 +131,9 @@ export default function CreateLink() {
   // Connect to Google Calendar
   const connectGoogleCalendar = async () => {
     try {
-      // In a real app, this would redirect to Google OAuth flow
-      // For demo, we'll simulate by setting a localStorage flag
       localStorage.setItem('googleCalendarTokens', 'dummy-token');
       setIsCalendarConnected(true);
       
-      // Simulate fetching calendars
       setCalendars([
         { id: 'primary', name: 'Main Calendar', primary: true },
         { id: 'work', name: 'Work Calendar', primary: false },
@@ -163,9 +166,12 @@ export default function CreateLink() {
         throw new Error('Meeting name is required');
       }
       
+      if (requiresApproval && approvers.length === 0) {
+        throw new Error('Please select at least one approver when approval is required');
+      }
+      
       // If calendar integration is enabled, check if we need to verify calendar conflicts
       if (isCalendarConnected && checkCalendarConflicts) {
-        // Simulate checking for calendar conflicts
         await checkForCalendarConflicts();
       }
       
@@ -175,18 +181,31 @@ export default function CreateLink() {
       // Generate a random link ID for demo purposes
       const linkId = Math.random().toString(36).substring(2, 10);
       
-      // If calendar integration is enabled, set up creation of calendar events for bookings
-      if (isCalendarConnected && createCalendarEvents) {
-        // In a real app, you would store calendar settings with the booking link
-        console.log('Calendar events will be created on booking for calendars:', selectedCalendarIds);
-      }
-      
-      // Success! In a real app, the API would return the created link data
-      setSuccessData({
+      // Prepare link data
+      const linkData = {
+        meetingName,
+        description,
+        meetingLength,
+        maxAdvanceDays,
+        usageLimit,
+        expirationDate,
+        questions,
         linkId,
         linkUrl: previewUrl,
-        calendarIntegration: isCalendarConnected && createCalendarEvents
-      });
+        calendarIntegration: isCalendarConnected && createCalendarEvents,
+        selectedCalendarIds: isCalendarConnected ? selectedCalendarIds : [],
+        checkCalendarConflicts,
+        createCalendarEvents
+      };
+      
+      // Add approval data if needed
+      if (requiresApproval && approvers.length > 0) {
+        linkData.requiresApproval = true;
+        linkData.approvers = approvers;
+      }
+      
+      // Success!
+      setSuccessData(linkData);
       
       // Skip to success view
       setStep(4);
@@ -202,9 +221,8 @@ export default function CreateLink() {
 
   // Simulate checking for calendar conflicts
   const checkForCalendarConflicts = async () => {
-    // In a real app, this would check for conflicts in the selected calendars
     await new Promise(resolve => setTimeout(resolve, 800));
-    return true; // No conflicts found
+    return true;
   };
 
   // Copy URL to clipboard
@@ -222,9 +240,13 @@ export default function CreateLink() {
 
   // Navigation between steps
   const goToNextStep = () => {
-    // Validate current step
     if (step === 1 && !meetingName) {
       setError('Please provide a meeting name');
+      return;
+    }
+    
+    if (step === 1 && requiresApproval && approvers.length === 0) {
+      setError('Please select at least one approver');
       return;
     }
     
@@ -296,6 +318,20 @@ export default function CreateLink() {
             </div>
           )}
           
+          {successData.requiresApproval && (
+            <div className="mb-6 p-3 bg-purple-50 border border-purple-100 rounded-lg text-left">
+              <div className="flex items-center">
+                <svg className="h-5 w-5 text-purple-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                <span className="text-sm font-medium text-purple-800">Approval Workflow Active</span>
+              </div>
+              <p className="text-xs text-purple-700 ml-7 mt-1">
+                Bookings will require approval from selected approvers
+              </p>
+            </div>
+          )}
+          
           <div className="flex flex-col sm:flex-row justify-center gap-3">
             <Button
               onClick={() => navigate('/dashboard')}
@@ -306,7 +342,6 @@ export default function CreateLink() {
             </Button>
             <Button
               onClick={() => {
-                // Reset form and start over
                 setMeetingName('');
                 setDescription('');
                 setMeetingLength(30);
@@ -314,6 +349,8 @@ export default function CreateLink() {
                 setUsageLimit(0);
                 setExpirationDate('');
                 setQuestions([{ id: `q${Date.now()}`, label: 'What topics would you like to discuss?' }]);
+                setRequiresApproval(false);
+                setApprovers([]);
                 setStep(1);
                 setSuccessData(null);
               }}
@@ -324,7 +361,6 @@ export default function CreateLink() {
           </div>
         </Card>
         
-        {/* URL Modal */}
         <Modal
           isOpen={showUrlModal}
           onClose={() => setShowUrlModal(false)}
@@ -598,6 +634,57 @@ export default function CreateLink() {
                     </div>
                   </div>
                 )}
+                
+                {/* Approval Settings Section */}
+                <div className="border-t border-gray-200 pt-4 mt-6">
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">Approval Settings</h3>
+                  
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Require Approval</p>
+                      <p className="text-xs text-gray-500">
+                        Bookings will require approval before being confirmed
+                      </p>
+                    </div>
+                    <Toggle
+                      enabled={requiresApproval}
+                      onChange={setRequiresApproval}
+                    />
+                  </div>
+                  
+                  {requiresApproval && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Select Approvers
+                      </label>
+                      <div className="space-y-3 max-h-48 overflow-y-auto p-2 border border-gray-200 rounded-lg">
+                        {teamMembers.map(member => (
+                          <div key={member.id} className="flex items-center">
+                            <input
+                              type="checkbox"
+                              id={`approver-${member.id}`}
+                              checked={approvers.includes(member.id)}
+                              onChange={() => {
+                                if (approvers.includes(member.id)) {
+                                  setApprovers(approvers.filter(id => id !== member.id));
+                                } else {
+                                  setApprovers([...approvers, member.id]);
+                                }
+                              }}
+                              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                            />
+                            <label htmlFor={`approver-${member.id}`} className="ml-3 text-sm text-gray-700">
+                              {member.name} {member.email && `(${member.email})`}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                      {requiresApproval && approvers.length === 0 && (
+                        <p className="mt-1 text-xs text-red-500">Please select at least one approver</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               
               <div className="flex justify-end pt-4">
@@ -800,6 +887,38 @@ export default function CreateLink() {
                           </div>
                         </div>
                       )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {requiresApproval && (
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gray-50 p-4 border-b border-gray-200">
+                    <h3 className="text-lg font-medium text-gray-900">Approval Settings</h3>
+                  </div>
+                  <div className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm text-gray-900">Requires Approval</p>
+                        <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                          Enabled
+                        </span>
+                      </div>
+                      
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 mb-1">Approvers:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {approvers.map(approverId => {
+                            const approver = teamMembers.find(m => m.id === approverId);
+                            return (
+                              <span key={approverId} className="inline-flex items-center px-2 py-1 bg-purple-50 text-purple-700 text-xs font-medium rounded-full">
+                                {approver?.name || approverId}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -10,8 +10,11 @@ export default function MeetingViewer() {
   const [filter, setFilter] = useState('upcoming'); // 'upcoming', 'past', 'all'
   const [selectedMeeting, setSelectedMeeting] = useState(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [approvalLoading, setApprovalLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
 
   // Filter tabs
   const filterTabs = [
@@ -25,10 +28,9 @@ export default function MeetingViewer() {
       try {
         setLoading(true);
         
-        // In a real implementation, you would fetch meetings from your API
         // Simulate API delay for demonstration
         setTimeout(() => {
-          // Mock data for development
+          // Mock data with approval statuses
           const mockMeetings = [
             {
               id: 'm1',
@@ -50,7 +52,7 @@ export default function MeetingViewer() {
               startTime: '2025-05-25T14:00:00Z',
               endTime: '2025-05-25T14:45:00Z',
               meetingName: 'Follow-up Session',
-              status: 'confirmed',
+              status: 'pending',
               linkId: 'l2',
               questions: [
                 { question: 'What topics would you like to discuss?', answer: 'Tax planning for small business' },
@@ -77,10 +79,24 @@ export default function MeetingViewer() {
               startTime: '2025-05-13T11:00:00Z',
               endTime: '2025-05-13T12:00:00Z',
               meetingName: 'Strategy Session',
-              status: 'canceled',
+              status: 'rejected',
               linkId: 'l3',
               questions: [
                 { question: 'What are your business goals?', answer: 'Expanding to new markets in the next year' }
+              ],
+              rejectionReason: 'Not available at the requested time'
+            },
+            {
+              id: 'm5',
+              clientName: 'Michael Brown',
+              clientEmail: 'michael@example.com',
+              startTime: '2025-05-26T15:00:00Z',
+              endTime: '2025-05-26T15:45:00Z',
+              meetingName: 'Consultation',
+              status: 'pending',
+              linkId: 'l4',
+              questions: [
+                { question: 'What services are you interested in?', answer: 'Financial planning and investment advice' }
               ]
             }
           ];
@@ -99,25 +115,41 @@ export default function MeetingViewer() {
     fetchMeetings();
   }, []);
 
-  const updateMeetingStatus = async (meetingId, newStatus) => {
+  const updateMeetingStatus = async (meetingId, newStatus, reason = '') => {
     try {
       setCancelLoading(true);
+      setApprovalLoading(true);
       
       // Simulate API call with a timeout
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Update the meeting in the local state
       setMeetings(meetings.map(meeting => 
-        meeting.id === meetingId ? { ...meeting, status: newStatus } : meeting
+        meeting.id === meetingId ? { 
+          ...meeting, 
+          status: newStatus,
+          ...(reason && { rejectionReason: reason })
+        } : meeting
       ));
       
       // Close modals and show success message
       setShowCancelModal(false);
+      setShowRejectionModal(false);
       if (selectedMeeting && selectedMeeting.id === meetingId) {
-        setSelectedMeeting({ ...selectedMeeting, status: newStatus });
+        setSelectedMeeting({ 
+          ...selectedMeeting, 
+          status: newStatus,
+          ...(reason && { rejectionReason: reason })
+        });
       }
       
-      setSuccessMessage(`Meeting ${newStatus === 'canceled' ? 'canceled' : 'updated'} successfully.`);
+      let action = '';
+      if (newStatus === 'canceled') action = 'canceled';
+      else if (newStatus === 'confirmed') action = 'approved';
+      else if (newStatus === 'rejected') action = 'rejected';
+      else action = 'updated';
+      
+      setSuccessMessage(`Meeting ${action} successfully.`);
       
       // Clear success message after 5 seconds
       setTimeout(() => {
@@ -125,10 +157,12 @@ export default function MeetingViewer() {
       }, 5000);
       
     } catch (err) {
-      console.error(`Error ${newStatus === 'canceled' ? 'canceling' : 'updating'} meeting:`, err);
-      setError(`Failed to ${newStatus === 'canceled' ? 'cancel' : 'update'} meeting. Please try again.`);
+      console.error(`Error updating meeting status:`, err);
+      setError(`Failed to update meeting status. Please try again.`);
     } finally {
       setCancelLoading(false);
+      setApprovalLoading(false);
+      setRejectionReason('');
     }
   };
 
@@ -148,15 +182,23 @@ export default function MeetingViewer() {
     }
   };
 
+  const handleApproveMeeting = async (meetingId) => {
+    await updateMeetingStatus(meetingId, 'confirmed');
+  };
+
+  const handleRejectMeeting = async (meetingId, reason) => {
+    await updateMeetingStatus(meetingId, 'rejected', reason);
+  };
+
   // Filter meetings based on selected filter
   const filteredMeetings = meetings.filter(meeting => {
     const meetingDate = new Date(meeting.startTime);
     const now = new Date();
     
     if (filter === 'upcoming') {
-      return meetingDate > now && meeting.status !== 'canceled';
+      return meetingDate > now && !['canceled', 'rejected'].includes(meeting.status);
     } else if (filter === 'past') {
-      return meetingDate < now || meeting.status === 'completed' || meeting.status === 'canceled';
+      return meetingDate < now || ['completed', 'canceled', 'rejected'].includes(meeting.status);
     }
     return true; // 'all' filter
   });
@@ -199,13 +241,17 @@ export default function MeetingViewer() {
     const variants = {
       confirmed: 'success',
       completed: 'secondary',
-      canceled: 'danger'
+      canceled: 'danger',
+      pending: 'warning',
+      rejected: 'danger'
     };
     
     const labels = {
       confirmed: 'Confirmed',
       completed: 'Completed',
-      canceled: 'Canceled'
+      canceled: 'Canceled',
+      pending: 'Pending Approval',
+      rejected: 'Rejected'
     };
     
     return (
@@ -403,6 +449,26 @@ export default function MeetingViewer() {
                   </Button>
                 </>
               )}
+              
+              {selectedMeeting.status === 'pending' && (
+                <>
+                  <Button
+                    variant="success"
+                    onClick={() => handleApproveMeeting(selectedMeeting.id)}
+                    isLoading={approvalLoading}
+                    className="ml-3"
+                  >
+                    Approve Meeting
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={() => setShowRejectionModal(true)}
+                    className="ml-3"
+                  >
+                    Reject Meeting
+                  </Button>
+                </>
+              )}
             </>
           }
         >
@@ -434,6 +500,13 @@ export default function MeetingViewer() {
                 </div>
               </div>
             </div>
+            
+            {selectedMeeting.rejectionReason && (
+              <div className="bg-red-50 p-4 rounded-lg border border-red-100">
+                <h4 className="text-sm font-medium text-red-800 mb-1">Rejection Reason</h4>
+                <p className="text-sm text-red-700">{selectedMeeting.rejectionReason}</p>
+              </div>
+            )}
             
             {selectedMeeting.questions && selectedMeeting.questions.length > 0 && (
               <div>
@@ -533,6 +606,75 @@ export default function MeetingViewer() {
           <p className="text-gray-500 text-sm">
             Canceling this meeting will send a notification to the client and remove it from both of your calendars.
           </p>
+        </div>
+      </Modal>
+
+      {/* Rejection Reason Modal */}
+      <Modal
+        isOpen={showRejectionModal}
+        onClose={() => setShowRejectionModal(false)}
+        title="Reject Meeting"
+        size="md"
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setShowRejectionModal(false)}
+              disabled={approvalLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => handleRejectMeeting(selectedMeeting.id, rejectionReason)}
+              isLoading={approvalLoading}
+              className="ml-3"
+            >
+              {approvalLoading ? 'Rejecting...' : 'Confirm Rejection'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="bg-yellow-50 p-4 rounded-lg text-yellow-700">
+            <div className="flex">
+              <svg className="h-5 w-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p>Are you sure you want to reject this meeting request?</p>
+            </div>
+          </div>
+          
+          {selectedMeeting && (
+            <div>
+              <p className="text-gray-700">
+                <span className="font-medium">Meeting:</span> {selectedMeeting.meetingName}
+              </p>
+              <p className="text-gray-700">
+                <span className="font-medium">Client:</span> {selectedMeeting.clientName}
+              </p>
+              <p className="text-gray-700">
+                <span className="font-medium">Date & Time:</span> {formatDate(selectedMeeting.startTime)}, {formatTime(selectedMeeting.startTime)}
+              </p>
+            </div>
+          )}
+          
+          <div>
+            <label htmlFor="rejectionReason" className="block text-sm font-medium text-gray-700 mb-1">
+              Rejection Reason (optional)
+            </label>
+            <textarea
+              id="rejectionReason"
+              rows="3"
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-red-500 focus:border-red-500"
+              placeholder="Provide a reason for rejecting this meeting..."
+            ></textarea>
+            <p className="text-sm text-gray-500 mt-1">
+              This reason will be included in the notification to the client.
+            </p>
+          </div>
         </div>
       </Modal>
     </MainLayout>

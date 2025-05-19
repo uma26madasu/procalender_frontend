@@ -15,6 +15,7 @@ export default function CreateLink() {
   const [maxAdvanceDays, setMaxAdvanceDays] = useState(14);
   const [usageLimit, setUsageLimit] = useState(0); // 0 means unlimited
   const [expirationDate, setExpirationDate] = useState('');
+  const [requiresApproval, setRequiresApproval] = useState(false);
   const [questions, setQuestions] = useState([
     { id: `q${Date.now()}`, label: 'What topics would you like to discuss?' }
   ]);
@@ -106,7 +107,8 @@ export default function CreateLink() {
       // Success! In a real app, the API would return the created link data
       setSuccessData({
         linkId,
-        linkUrl: previewUrl
+        linkUrl: previewUrl,
+        requiresApproval // Include in success data
       });
       
       // Skip to success view
@@ -169,6 +171,15 @@ export default function CreateLink() {
             Share this link with your clients to allow them to book meetings with you.
           </p>
           
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="font-medium text-gray-900">Booking Flow:</p>
+            <p className="text-sm text-gray-600">
+              {successData.requiresApproval 
+                ? 'Bookings will require your approval before confirmation'
+                : 'Bookings will be automatically confirmed'}
+            </p>
+          </div>
+          
           <div 
             className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg mb-8 cursor-pointer"
             onClick={() => setShowUrlModal(true)}
@@ -213,6 +224,7 @@ export default function CreateLink() {
                 setMaxAdvanceDays(14);
                 setUsageLimit(0);
                 setExpirationDate('');
+                setRequiresApproval(false);
                 setQuestions([{ id: `q${Date.now()}`, label: 'What topics would you like to discuss?' }]);
                 setStep(1);
                 setSuccessData(null);
@@ -422,6 +434,35 @@ export default function CreateLink() {
                     </p>
                   </div>
                 </div>
+
+                {/* Approval Requirement Toggle */}
+                <div className="flex items-center justify-between pt-2">
+                  <div>
+                    <label htmlFor="requiresApproval" className="block text-sm font-medium text-gray-700">
+                      Require approval for bookings
+                    </label>
+                    <p className="text-xs text-gray-500">
+                      When enabled, bookings will need your manual approval before confirmation
+                    </p>
+                  </div>
+                  <div className="relative inline-block w-10 mr-2 align-middle select-none">
+                    <input
+                      type="checkbox"
+                      id="requiresApproval"
+                      checked={requiresApproval}
+                      onChange={() => setRequiresApproval(!requiresApproval)}
+                      className="sr-only"
+                    />
+                    <label
+                      htmlFor="requiresApproval"
+                      className={`block overflow-hidden h-6 rounded-full cursor-pointer ${requiresApproval ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                    >
+                      <span
+                        className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform ${requiresApproval ? 'translate-x-4' : 'translate-x-0'}`}
+                      />
+                    </label>
+                  </div>
+                </div>
               </div>
             </form>
           </div>
@@ -553,6 +594,11 @@ export default function CreateLink() {
                       <p className="text-gray-900">{new Date(expirationDate).toLocaleDateString()}</p>
                     </div>
                   )}
+                  
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">Approval Required</p>
+                    <p className="text-gray-900">{requiresApproval ? 'Yes - Bookings will need manual approval' : 'No - Bookings will be automatically confirmed'}</p>
+                  </div>
                 </div>
               </div>
               
