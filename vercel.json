@@ -1,15 +1,7 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist",
-        "buildCommand": "npx vite build --mode production"
-      }
-    }
-  ],
+  "buildCommand": "node vercel-build.js",
+  "outputDirectory": "dist",
   "routes": [
     {
       "handle": "filesystem"
