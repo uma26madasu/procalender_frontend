@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase Domain Test</title>
+  <style>
+    body { font-family: system-ui, sans-serif; line-height: 1.5; max-width: 800px; margin: 0 auto; padding: 20px; }
+    .card { background: #f9fafb; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+    h1 { color: #3b82f6; }
+    pre { background: white; padding: 15px; border-radius: 4px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>Firebase Domain Test</h1>
+  
+  <div class="card">
+    <h2>Current Domain Info</h2>
+    <p><strong>Domain:</strong> <span id="domain"></span></p>
+    <p><strong>Full URL:</strong> <span id="url"></span></p>
+    <p><strong>Needed for Firebase:</strong> Add this domain to Firebase Console → Authentication → Settings → Authorized domains</p>
+  </div>
+
+  <script>
+    // Display domain information
+    document.getElementById('domain').textContent = window.location.hostname;
+    document.getElementById('url').textContent = window.location.href;
+  </script>
+</body>
+</html>
