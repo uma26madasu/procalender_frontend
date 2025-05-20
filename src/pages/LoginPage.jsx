@@ -1,394 +1,535 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth, signInWithGooglePopup } from '../firebase';
+import { useNavigate } from 'react-router-dom';
+import { auth } from '../firebase';
+import MainLayout from '../components/layout/MainLayout';
+import { Card, Button, Alert, Badge, Modal, EmptyState } from '../components/UI';
+import { Calendar, momentLocalizer } from 'react-big-calendar';
+import moment from 'moment';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
 
-// Slotify logo component
-const SlotifyLogo = () => (
-  <div className="text-indigo-600">
-    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="3" y="6" width="18" height="15" rx="2" fill="currentColor" />
-      <rect x="5" y="8" width="14" height="11" rx="1" fill="white" />
-      <rect x="7" y="3" width="2" height="4" rx="1" fill="currentColor" />
-      <rect x="15" y="3" width="2" height="4" rx="1" fill="currentColor" />
-      <rect x="7" y="10" width="10" height="1.5" rx="0.75" fill="currentColor" />
-      <rect x="7" y="14" width="6" height="1.5" rx="0.75" fill="currentColor" />
-    </svg>
-  </div>
-);
+// Initialize calendar localizer
+const localizer = momentLocalizer(moment);
 
-// Features data for the sidebar
-const features = [
-  {
-    id: 1,
-    title: "Smart Scheduling",
-    description: "Automatically find the perfect time slots for your meetings",
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-      </svg>
-    )
-  },
-  {
-    id: 2,
-    title: "Time Zone Intelligence",
-    description: "Schedule across time zones without confusion",
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    )
-  },
-  {
-    id: 3,
-    title: "Client Self-Booking",
-    description: "Let clients book their own appointments through customizable links",
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
-      </svg>
-    )
-  },
-  {
-    id: 4,
-    title: "Calendar Integration",
-    description: "Sync with your favorite calendar apps for seamless scheduling",
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-    )
-  }
-];
-
-const LoginPage = ({ initialSignUp = false }) => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [isSignUp, setIsSignUp] = useState(initialSignUp);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+const Dashboard = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const [activeTab, setActiveTab] = useState('upcoming');
+  const [bookings, setBookings] = useState([]);
+  const [links, setLinks] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [stats, setStats] = useState({
+    totalBookings: 0,
+    pendingApprovals: 0,
+    completedMeetings: 0
+  });
 
-  // Set isSignUp based on URL path if it changes
+  // Fetch user's bookings and links
   useEffect(() => {
-    setIsSignUp(location.pathname === '/signup');
-  }, [location.pathname]);
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const userId = auth.currentUser?.uid;
+        
+        // In a real app, these would be API calls
+        const mockBookings = [
+          {
+            id: '1',
+            linkId: '1',
+            ownerId: userId,
+            clientName: 'John Smith',
+            clientEmail: 'john@example.com',
+            meetingName: 'Initial Consultation',
+            startTime: new Date(Date.now() + 86400000), // Tomorrow
+            endTime: new Date(Date.now() + 86400000 + 1800000), // 30 mins later
+            status: 'confirmed',
+            approvalStatus: 'approved',
+            questions: [
+              { question: 'What topics would you like to discuss?', answer: 'Product strategy' }
+            ]
+          },
+          {
+            id: '2',
+            linkId: '2',
+            ownerId: userId,
+            clientName: 'Sarah Johnson',
+            clientEmail: 'sarah@example.com',
+            meetingName: 'Follow-up Session',
+            startTime: new Date(Date.now() + 172800000), // 2 days from now
+            endTime: new Date(Date.now() + 172800000 + 3600000), // 1 hour later
+            status: 'pending',
+            approvalStatus: 'pending',
+            questions: [
+              { question: 'What topics would you like to discuss?', answer: 'Marketing plan' }
+            ]
+          }
+        ];
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      if (isSignUp) {
-        // Validate password match
-        if (password !== confirmPassword) {
-          throw new Error('Passwords do not match');
-        }
+        const mockLinks = [
+          {
+            id: '1',
+            linkId: 'abc123',
+            ownerId: userId,
+            meetingName: 'Initial Consultation',
+            meetingLength: 30,
+            requiresApproval: false,
+            usageCount: 5
+          },
+          {
+            id: '2',
+            linkId: 'def456',
+            ownerId: userId,
+            meetingName: 'Follow-up Session',
+            meetingLength: 60,
+            requiresApproval: true,
+            usageCount: 2
+          }
+        ];
+
+        setBookings(mockBookings);
+        setLinks(mockLinks);
         
-        // Validate name for signup
-        if (!name.trim()) {
-          throw new Error('Name is required');
-        }
-        
-        // Create user
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        
-        // Update profile with name
-        await updateProfile(userCredential.user, {
-          displayName: name
+        // Calculate stats
+        setStats({
+          totalBookings: mockBookings.length,
+          pendingApprovals: mockBookings.filter(b => b.approvalStatus === 'pending').length,
+          completedMeetings: mockBookings.filter(b => b.status === 'completed').length
         });
-      } else {
-        // Login
-        await signInWithEmailAndPassword(auth, email, password);
+        
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data. Please try again.');
+      } finally {
+        setIsLoading(false);
       }
-      navigate('/dashboard');
-    } catch (err) {
-      console.error('Authentication error:', err);
-      
-      // Handle specific Firebase errors with user-friendly messages
-      if (err.code === 'auth/invalid-email') {
-        setError('Please enter a valid email address.');
-      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-        setError('Incorrect email or password. Please try again.');
-      } else if (err.code === 'auth/weak-password') {
-        setError('Please use a stronger password (at least 6 characters).');
-      } else if (err.code === 'auth/email-already-in-use') {
-        setError('This email is already registered. Please login instead.');
-      } else {
-        setError(err.message || 'Authentication failed. Please try again.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
 
-  const handleSocialLogin = async (provider) => {
-    setIsLoading(true);
-    setError('');
-    
+    fetchData();
+  }, []);
+
+  // Handle booking approval/rejection
+  const handleBookingAction = async (action) => {
     try {
-      if (provider === 'Google') {
-        await signInWithGooglePopup();
-        navigate('/dashboard');
-      } else if (provider === 'GitHub') {
-        // Replace with your GitHub auth method if needed
-        console.log('GitHub login - implement your method here');
-      } else if (provider === 'LinkedIn') {
-        // Replace with your LinkedIn auth method if needed
-        console.log('LinkedIn login - implement your method here');
-      }
+      setIsLoading(true);
+      
+      // In a real app, this would be an API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Update local state
+      const updatedBookings = bookings.map(booking => {
+        if (booking.id === selectedBooking.id) {
+          return {
+            ...booking,
+            approvalStatus: action,
+            status: action === 'approved' ? 'confirmed' : 'canceled',
+            [action === 'approved' ? 'approvedBy' : 'rejectedBy']: auth.currentUser.uid,
+            [action === 'approved' ? 'approvedAt' : 'rejectedAt']: new Date().toISOString()
+          };
+        }
+        return booking;
+      });
+      
+      setBookings(updatedBookings);
+      setShowApprovalModal(false);
+      setSelectedBooking(null);
+      
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        pendingApprovals: updatedBookings.filter(b => b.approvalStatus === 'pending').length
+      }));
+      
     } catch (err) {
-      console.error(`${provider} sign-in error:`, err);
-      setError(`Failed to sign in with ${provider}. Please try again.`);
+      console.error('Error updating booking:', err);
+      setError('Failed to update booking. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Toggle between signup and login
-  const toggleSignUp = () => {
-    const newIsSignUp = !isSignUp;
-    setIsSignUp(newIsSignUp);
-    navigate(newIsSignUp ? '/signup' : '/login', { replace: true });
-    // Clear form errors when switching
-    setError('');
+  // Filter bookings based on active tab
+  const filteredBookings = bookings.filter(booking => {
+    const now = new Date();
+    switch (activeTab) {
+      case 'upcoming':
+        return booking.status !== 'completed' && new Date(booking.startTime) > now;
+      case 'pending':
+        return booking.approvalStatus === 'pending';
+      case 'past':
+        return booking.status === 'completed' || new Date(booking.startTime) < now;
+      default:
+        return true;
+    }
+  });
+
+  // Calendar events for the calendar view
+  const calendarEvents = bookings.map(booking => ({
+    id: booking.id,
+    title: `${booking.meetingName} with ${booking.clientName}`,
+    start: new Date(booking.startTime),
+    end: new Date(booking.endTime),
+    status: booking.status,
+    approvalStatus: booking.approvalStatus
+  }));
+
+  // Event style for calendar
+  const eventStyleGetter = (event) => {
+    let backgroundColor = '#3182ce'; // Default blue for confirmed
+    if (event.approvalStatus === 'pending') backgroundColor = '#ed8936'; // Orange
+    if (event.status === 'completed') backgroundColor = '#38a169'; // Green
+    if (event.status === 'canceled') backgroundColor = '#e53e3e'; // Red
+    
+    return {
+      style: {
+        backgroundColor,
+        borderRadius: '4px',
+        opacity: 0.8,
+        color: 'white',
+        border: '0px',
+        display: 'block'
+      }
+    };
   };
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row overflow-hidden bg-gray-50">
-      {/* Left side - Features & Branding */}
-      <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white">
-        <div className="max-w-xl mx-auto px-8 py-12 flex flex-col justify-center">
-          {/* Logo and brand name */}
-          <div className="flex items-center space-x-3 mb-16">
-            <SlotifyLogo />
-            <h1 className="text-3xl font-bold">Slotify</h1>
-          </div>
-          
-          {/* Main Headline */}
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold mb-4">Scheduling Made Simple</h2>
-            <p className="text-xl text-indigo-100">Save time with effortless appointment booking</p>
-          </div>
-          
-          {/* Features */}
-          <div className="space-y-8">
-            {features.map((feature) => (
-              <div key={feature.id} className="flex items-start space-x-4">
-                <div className="bg-indigo-500 bg-opacity-30 rounded-lg p-2">
-                  {feature.icon}
-                </div>
-                <div>
-                  <h3 className="text-xl font-semibold">{feature.title}</h3>
-                  <p className="text-indigo-100 mt-1">{feature.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-      
-      {/* Right side - Login/Signup Form */}
-      <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          {/* Mobile logo */}
-          <div className="md:hidden flex flex-col items-center mb-10">
-            <SlotifyLogo />
-            <h1 className="text-3xl font-bold text-indigo-600 mt-2">Slotify</h1>
-            <p className="text-gray-500 mt-1">Scheduling made simple</p>
-          </div>
-          
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-gray-900">
-              {isSignUp ? 'Create your account' : 'Welcome back'}
-            </h2>
-            <p className="mt-2 text-gray-600">
-              {isSignUp 
-                ? 'Start scheduling meetings in minutes' 
-                : 'Sign in to continue to your account'}
-            </p>
-          </div>
-          
-          {/* Error message */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg text-red-600 text-sm animate-shake">
-              <div className="flex">
-                <svg className="h-5 w-5 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>{error}</span>
-              </div>
-            </div>
-          )}
-          
-          {/* Social login buttons */}
-          <div className="mb-6">
-            <button 
-              onClick={() => handleSocialLogin('Google')}
-              disabled={isLoading}
-              className="w-full flex justify-center items-center py-2.5 px-4 border border-gray-300 rounded-lg shadow-sm bg-white hover:bg-gray-50 transition-colors disabled:opacity-50 text-gray-700 font-medium"
-            >
-              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                <path fill="#EA4335" d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.27 0 3.198 2.698 1.24 6.65l4.026 3.115Z" />
-                <path fill="#34A853" d="M16.04 18.013c-1.09.703-2.474 1.078-4.04 1.078a7.077 7.077 0 0 1-6.723-4.823l-4.04 3.067A11.965 11.965 0 0 0 12 24c2.933 0 5.735-1.043 7.834-3l-3.793-2.987Z" />
-                <path fill="#4A90E2" d="M19.834 21c2.195-2.048 3.62-5.096 3.62-9 0-.71-.109-1.473-.272-2.182H12v4.637h6.436c-.317 1.559-1.17 2.766-2.395 3.558L19.834 21Z" />
-                <path fill="#FBBC05" d="M5.277 14.268A7.12 7.12 0 0 1 4.909 12c0-.782.125-1.533.357-2.235L1.24 6.65A11.934 11.934 0 0 0 0 12c0 1.92.445 3.73 1.237 5.335l4.04-3.067Z" />
-              </svg>
-              Continue with Google
-            </button>
-          </div>
-          
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">Or continue with email</span>
-            </div>
-          </div>
-          
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {isSignUp && (
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                  Full Name
-                </label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required={isSignUp}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                  placeholder="John Smith"
-                />
-              </div>
-            )}
-            
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                placeholder="you@example.com"
-              />
-            </div>
-            
-            <div>
-              <div className="flex items-center justify-between">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password
-                </label>
-                {!isSignUp && (
-                  <a href="#" className="text-xs font-medium text-indigo-600 hover:text-indigo-500">
-                    Forgot password?
-                  </a>
-                )}
-              </div>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                placeholder="••••••••"
-              />
-            </div>
-            
-            {isSignUp && (
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                  Confirm Password
-                </label>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required={isSignUp}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                  placeholder="••••••••"
-                />
-              </div>
-            )}
-            
-            {!isSignUp && (
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                  Remember me
-                </label>
-              </div>
-            )}
-            
-            <div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="group relative w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    {isSignUp ? 'Creating account...' : 'Signing in...'}
-                  </>
-                ) : (
-                  isSignUp ? 'Create account' : 'Sign in'
-                )}
-              </button>
-            </div>
-          </form>
-          
-          {/* Sign up/in toggle link */}
-          <div className="mt-8 text-center">
-            <button 
-              type="button" 
-              onClick={toggleSignUp}
-              disabled={isLoading}
-              className="text-indigo-600 hover:text-indigo-500 font-medium transition-colors"
-            >
-              {isSignUp 
-                ? 'Already have an account? Sign in' 
-                : "Don't have an account? Sign up"}
-            </button>
-          </div>
-        </div>
-        
-        <div className="mt-10 text-center text-xs text-gray-500">
-          <p>© {new Date().getFullYear()} Slotify. All rights reserved.</p>
-          <p className="mt-1">
-            <a href="#" className="text-indigo-600 hover:text-indigo-500">Terms of Service</a>
-            {' • '}
-            <a href="#" className="text-indigo-600 hover:text-indigo-500">Privacy Policy</a>
+    <MainLayout>
+      {/* Error Alert */}
+      {error && (
+        <Alert
+          type="error"
+          message={error}
+          onClose={() => setError('')}
+          className="mb-6"
+        />
+      )}
+
+      {/* Dashboard Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600">
+            {activeTab === 'upcoming' ? 'Your upcoming meetings' : 
+             activeTab === 'pending' ? 'Meetings awaiting approval' : 
+             'Your past meetings'}
           </p>
         </div>
+        <div className="mt-4 md:mt-0 flex space-x-3">
+          <Button onClick={() => setShowCreateModal(true)}>
+            Create Booking Link
+          </Button>
+          <Button variant="secondary" onClick={() => navigate('/availability')}>
+            Set Availability
+          </Button>
+        </div>
       </div>
-    </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <Card>
+          <div className="p-4">
+            <h3 className="text-sm font-medium text-gray-500">Total Bookings</h3>
+            <p className="text-3xl font-semibold text-gray-900">{stats.totalBookings}</p>
+          </div>
+        </Card>
+        <Card>
+          <div className="p-4">
+            <h3 className="text-sm font-medium text-gray-500">Pending Approvals</h3>
+            <p className="text-3xl font-semibold text-gray-900">{stats.pendingApprovals}</p>
+          </div>
+        </Card>
+        <Card>
+          <div className="p-4">
+            <h3 className="text-sm font-medium text-gray-500">Completed Meetings</h3>
+            <p className="text-3xl font-semibold text-gray-900">{stats.completedMeetings}</p>
+          </div>
+        </Card>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('upcoming')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'upcoming' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+          >
+            Upcoming
+          </button>
+          <button
+            onClick={() => setActiveTab('pending')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'pending' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+          >
+            Pending Approval
+            {stats.pendingApprovals > 0 && (
+              <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                {stats.pendingApprovals}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('past')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'past' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+          >
+            Past Meetings
+          </button>
+          <button
+            onClick={() => setActiveTab('calendar')}
+            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'calendar' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+          >
+            Calendar View
+          </button>
+        </nav>
+      </div>
+
+      {/* Content based on active tab */}
+      {activeTab === 'calendar' ? (
+        <Card className="p-4 h-[600px]">
+          <Calendar
+            localizer={localizer}
+            events={calendarEvents}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: '100%' }}
+            eventPropGetter={eventStyleGetter}
+            onSelectEvent={(event) => {
+              const booking = bookings.find(b => b.id === event.id);
+              setSelectedBooking(booking);
+            }}
+          />
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+            </div>
+          ) : filteredBookings.length > 0 ? (
+            filteredBookings.map(booking => (
+              <Card key={booking.id} className="hover:shadow-md transition-shadow">
+                <div className="p-4">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                    <div className="mb-4 md:mb-0">
+                      <h3 className="text-lg font-medium text-gray-900">
+                        {booking.meetingName} with {booking.clientName}
+                      </h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {moment(booking.startTime).format('MMMM Do YYYY, h:mm a')} -{' '}
+                        {moment(booking.endTime).format('h:mm a')}
+                      </p>
+                      <div className="mt-2 flex space-x-2">
+                        <Badge
+                          variant={
+                            booking.approvalStatus === 'pending' ? 'warning' :
+                            booking.status === 'confirmed' ? 'success' :
+                            booking.status === 'canceled' ? 'error' : 'default'
+                          }
+                        >
+                          {booking.approvalStatus === 'pending' ? 'Pending Approval' :
+                           booking.status === 'confirmed' ? 'Confirmed' :
+                           booking.status === 'canceled' ? 'Canceled' : 'Completed'}
+                        </Badge>
+                        {booking.approvalStatus === 'approved' && booking.approvedAt && (
+                          <Badge variant="success">
+                            Approved {moment(booking.approvedAt).fromNow()}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedBooking(booking);
+                          if (booking.approvalStatus === 'pending') {
+                            setShowApprovalModal(true);
+                          } else {
+                            navigate(`/booking/${booking.id}`);
+                          }
+                        }}
+                      >
+                        {booking.approvalStatus === 'pending' ? 'Review' : 'Details'}
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => window.location.href = `mailto:${booking.clientEmail}`}
+                      >
+                        Contact
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))
+          ) : (
+            <EmptyState
+              title={`No ${activeTab} meetings found`}
+              description={`You don't have any ${activeTab} meetings scheduled yet.`}
+              icon={
+                <svg className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              }
+            />
+          )}
+        </div>
+      )}
+
+      {/* Booking Links Section */}
+      <div className="mt-12">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">Your Booking Links</h2>
+          <Button size="sm" onClick={() => setShowCreateModal(true)}>
+            Create New Link
+          </Button>
+        </div>
+        
+        {links.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {links.map(link => (
+              <Card key={link.id} className="hover:shadow-md transition-shadow">
+                <div className="p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium text-gray-900">{link.meetingName}</h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {link.meetingLength} min • {link.requiresApproval ? 'Approval Required' : 'Auto-confirm'}
+                      </p>
+                    </div>
+                    <Badge variant="secondary">
+                      {link.usageCount} {link.usageCount === 1 ? 'booking' : 'bookings'}
+                    </Badge>
+                  </div>
+                  <div className="mt-4 flex space-x-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => navigate(`/link/${link.linkId}`)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => navigator.clipboard.writeText(`https://slotify.app/book/${link.linkId}`)}
+                    >
+                      Copy Link
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="No booking links created yet"
+            description="Create your first booking link to start accepting meetings."
+            action={
+              <Button onClick={() => setShowCreateModal(true)}>
+                Create Booking Link
+              </Button>
+            }
+            icon={
+              <svg className="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+            }
+          />
+        )}
+      </div>
+
+      {/* Create Link Modal */}
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Create New Booking Link"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-600">
+            Create a customized link that clients can use to book meetings with you.
+          </p>
+          <Button
+            fullWidth
+            onClick={() => {
+              setShowCreateModal(false);
+              navigate('/create-link');
+            }}
+          >
+            Create Custom Link
+          </Button>
+          <Button
+            variant="secondary"
+            fullWidth
+            onClick={() => {
+              setShowCreateModal(false);
+              navigate('/create-link/quick');
+            }}
+          >
+            Quick Create
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Approval Modal */}
+      {selectedBooking && (
+        <Modal
+          isOpen={showApprovalModal}
+          onClose={() => {
+            setShowApprovalModal(false);
+            setSelectedBooking(null);
+          }}
+          title="Review Booking Request"
+          size="lg"
+        >
+          <div className="space-y-6">
+            <div>
+              <h4 className="font-medium text-gray-900">Meeting Details</h4>
+              <p className="mt-1 text-gray-600">
+                {selectedBooking.meetingName} with {selectedBooking.clientName}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                {moment(selectedBooking.startTime).format('MMMM Do YYYY, h:mm a')} -{' '}
+                {moment(selectedBooking.endTime).format('h:mm a')}
+              </p>
+            </div>
+            
+            {selectedBooking.questions && selectedBooking.questions.length > 0 && (
+              <div>
+                <h4 className="font-medium text-gray-900">Client Responses</h4>
+                <div className="mt-2 space-y-3">
+                  {selectedBooking.questions.map((q, i) => (
+                    <div key={i} className="bg-gray-50 p-3 rounded-lg">
+                      <p className="text-sm font-medium text-gray-700">{q.question}</p>
+                      <p className="mt-1 text-gray-600">{q.answer || 'No response'}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div className="flex justify-end space-x-3">
+              <Button
+                variant="error"
+                onClick={() => handleBookingAction('rejected')}
+                disabled={isLoading}
+              >
+                Reject
+              </Button>
+              <Button
+                onClick={() => handleBookingAction('approved')}
+                disabled={isLoading}
+              >
+                Approve
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </MainLayout>
   );
 };
 
-export default LoginPage;
+export default Dashboard;

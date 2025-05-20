@@ -2,12 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebase';
+import { getGoogleAuthUrl, isCalendarConnected as checkCalendarConnection, disconnectGoogleCalendar as disconnectGCal } from '../services/calendar/googleCalendar';
 
 // Import components using the barrel pattern
 import { MainLayout, Card, Button, Badge, Avatar, Alert, Modal } from '../components';
-
-// Import calendar service
-import { getGoogleAuthUrl } from '../services/calendar/googleCalendar';
 
 function Dashboard() {
   const [error, setError] = useState(null);
@@ -31,58 +29,57 @@ function Dashboard() {
 
   // Check if user has connected Google Calendar
   useEffect(() => {
-    const checkCalendarConnection = async () => {
+    const checkCalendarConnectionStatus = async () => {
       try {
-        const hasCalendarTokens = localStorage.getItem('googleCalendarTokens') !== null;
-        setIsCalendarConnected(hasCalendarTokens);
+        // Use the isCalendarConnected function from googleCalendar.js
+        const connected = checkCalendarConnection();
+        setIsCalendarConnected(connected);
         
-        if (hasCalendarTokens) {
-          setCalendarStats({
-            connectedCalendars: 2,
-            primaryCalendar: 'Main Calendar',
-            upcomingEvents: 8,
-            lastSynced: new Date().toISOString()
-          });
+        if (connected) {
+          // Fetch calendar stats from API instead of hardcoded values
+          // This would typically be an API call
+          const fetchCalendarStats = async () => {
+            try {
+              // Replace with actual API call
+              // const response = await api.getCalendarStats();
+              // setCalendarStats(response.data);
+              
+              // For now, just set loading state until API is implemented
+              setCalendarStats(null);
+            } catch (error) {
+              console.error('Error fetching calendar stats:', error);
+            }
+          };
+          
+          fetchCalendarStats();
         }
       } catch (err) {
         console.error('Error checking calendar connection:', err);
       }
     };
     
-    checkCalendarConnection();
+    checkCalendarConnectionStatus();
   }, []);
 
   // Fetch pending approvals
   useEffect(() => {
     const fetchPendingApprovals = async () => {
       try {
-        // Simulated API call with timeout
+        setIsLoadingApprovals(true);
+        
+        // Replace with actual API call
+        // const response = await api.getPendingApprovals();
+        // setPendingApprovals(response.data);
+        // setIsLoadingApprovals(false);
+        
+        // Simulated API call - remove this when implementing real API
         setTimeout(() => {
-          // Mock data
-          setPendingApprovals([
-            {
-              id: 'pa1',
-              clientName: 'Alex Johnson',
-              clientEmail: 'alex@example.com',
-              meetingName: 'Strategy Session',
-              date: '2025-05-26',
-              time: '10:00 AM',
-              submittedAt: '2025-05-19T15:30:00Z'
-            },
-            {
-              id: 'pa2',
-              clientName: 'Emma Wilson',
-              clientEmail: 'emma@example.com',
-              meetingName: 'Initial Consultation',
-              date: '2025-05-27',
-              time: '2:00 PM',
-              submittedAt: '2025-05-19T16:45:00Z'
-            }
-          ]);
+          setPendingApprovals([]);
           setIsLoadingApprovals(false);
-        }, 1200);
+        }, 1000);
       } catch (err) {
         console.error('Error fetching approval requests:', err);
+        setPendingApprovals([]);
         setIsLoadingApprovals(false);
       }
     };
@@ -97,76 +94,36 @@ function Dashboard() {
       try {
         setIsLoading(true);
         
-        // Simulate loading with a timeout
+        // Replace with actual API call
+        // const response = await api.getDashboardData();
+        // setDashboardData(response.data);
+        // setIsLoading(false);
+        
+        // Simulated API call - remove this when implementing real API
         setTimeout(() => {
+          // Initialize with empty/default structure instead of mock data
           setDashboardData({
             meetings: {
-              upcoming: 3,
-              today: 1,
-              nextMeeting: {
-                title: 'Initial Consultation',
-                clientName: 'Sarah Johnson',
-                time: '2:00 PM',
-                date: 'Today'
-              }
+              upcoming: 0,
+              today: 0,
+              nextMeeting: null
             },
             availabilityWindows: {
-              count: 5,
-              totalHours: 20,
-              mostPopular: 'Monday 9:00 AM - 5:00 PM'
+              count: 0,
+              totalHours: 0,
+              mostPopular: null
             },
             bookingLinks: {
-              count: 3,
-              active: 2,
-              mostUsed: {
-                name: 'Initial Consultation',
-                booked: 8,
-                link: '/calendar/initial-consult'
-              }
+              count: 0,
+              active: 0,
+              mostUsed: null
             },
             analytics: {
-              completedMeetings: 12,
-              totalBooked: 15,
-              averageDuration: 45
+              completedMeetings: 0,
+              totalBooked: 0,
+              averageDuration: 0
             },
-            activity: [
-              { 
-                id: 1, 
-                type: 'booking', 
-                title: 'New booking from John Smith', 
-                description: 'Initial Consultation on May 20', 
-                time: '10 minutes ago',
-                icon: (
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                )
-              },
-              { 
-                id: 2, 
-                type: 'link', 
-                title: 'Your "Strategy Session" link was viewed', 
-                description: '5 views today', 
-                time: '1 hour ago',
-                icon: (
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101" />
-                  </svg>
-                )
-              },
-              { 
-                id: 3, 
-                type: 'meeting', 
-                title: 'Meeting completed with David Lee', 
-                description: 'Follow-up Session - 45 minutes', 
-                time: '2 days ago',
-                icon: (
-                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                )
-              }
-            ]
+            activity: []
           });
           setIsLoading(false);
         }, 1000);
@@ -184,7 +141,8 @@ function Dashboard() {
   const connectGoogleCalendar = async () => {
     try {
       setIsCalendarConnecting(true);
-      const authUrl = await getGoogleAuthUrl();
+      // Get the auth URL from our service - note it doesn't need await anymore
+      const authUrl = getGoogleAuthUrl();
       window.location.href = authUrl;
     } catch (err) {
       console.error('Error starting Google Auth flow:', err);
@@ -196,8 +154,8 @@ function Dashboard() {
   // Disconnect Google Calendar
   const disconnectGoogleCalendar = async () => {
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      localStorage.removeItem('googleCalendarTokens');
+      // Use the function from googleCalendar.js
+      await disconnectGCal();
       setIsCalendarConnected(false);
       setCalendarStats(null);
       setSuccessMessage('Google Calendar disconnected successfully.');
@@ -722,185 +680,6 @@ function Dashboard() {
         </Card>
       </div>
 
-      {/* Calendar Management Modal */}
-      <Modal
-        isOpen={showCalendarModal}
-        onClose={() => setShowCalendarModal(false)}
-        title="Calendar Integration"
-        size="lg"
-      >
-        <div className="space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-full text-blue-600">
-                <svg className="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M12 0C5.383 0 0 5.383 0 12s5.383 12 12 12 12-5.383 12-12S18.617 0 12 0z" fill="#4285F4"/>
-                  <path d="M12 0C5.383 0 0 5.383 0 12s5.383 12 12 12 12-5.383 12-12S18.617 0 12 0z" fill="#4285F4"/>
-                  <path d="M12 4.8V0C5.383 0 0 5.383 0 12h4.8c0-3.977 3.223-7.2 7.2-7.2z" fill="#34A853"/>
-                  <path d="M19.2 12H24c0-6.617-5.383-12-12-12v4.8c3.977 0 7.2 3.223 7.2 7.2z" fill="#FBBC05"/>
-                  <path d="M12 19.2c-3.977 0-7.2-3.223-7.2-7.2H0c0 6.617 5.383 12 12 12v-4.8z" fill="#EA4335"/>
-                </svg>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-lg font-medium text-gray-900">Google Calendar</h3>
-                <p className="text-sm text-gray-500">Connected on {new Date().toLocaleDateString()}</p>
-              </div>
-            </div>
-            <Badge variant="success">Active</Badge>
-          </div>
-          
-          <div>
-            <h3 className="text-md font-medium text-gray-900 mb-3">Connected Calendars</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="p-2 rounded-full bg-blue-100 text-blue-600">
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm font-medium">{calendarStats?.primaryCalendar || 'Main Calendar'}</p>
-                    <p className="text-xs text-gray-500">Primary</p>
-                  </div>
-                </div>
-                <Badge variant="primary" size="sm">Primary</Badge>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center">
-                  <div className="p-2 rounded-full bg-purple-100 text-purple-600">
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm font-medium">Work Calendar</p>
-                    <p className="text-xs text-gray-500">Secondary</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button variant="secondary" size="sm">Edit</Button>
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-4">
-              <Button variant="secondary" size="sm">
-                Add Another Calendar
-              </Button>
-            </div>
-          </div>
-          
-          <div className="border-t pt-4">
-            <h3 className="text-md font-medium text-gray-900 mb-3">Calendar Settings</h3>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium">Check for conflicts</p>
-                  <p className="text-xs text-gray-500">
-                    Automatically check for calendar conflicts when booking
-                  </p>
-                </div>
-                <div className="relative inline-block w-10 align-middle select-none">
-                  <input type="checkbox" id="toggle-conflict" className="sr-only" checked readOnly />
-                  <div className="block h-6 bg-gray-300 rounded-full"></div>
-                  <div className="dot absolute left-1 top-1 bg-indigo-600 w-4 h-4 rounded-full transition"></div>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium">Create calendar events</p>
-                  <p className="text-xs text-gray-500">
-                    Automatically create events when bookings are confirmed
-                  </p>
-                </div>
-                <div className="relative inline-block w-10 align-middle select-none">
-                  <input type="checkbox" id="toggle-create" className="sr-only" checked readOnly />
-                  <div className="block h-6 bg-gray-300 rounded-full"></div>
-                  <div className="dot absolute left-1 top-1 bg-indigo-600 w-4 h-4 rounded-full transition"></div>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-sm font-medium">Two-way sync</p>
-                  <p className="text-xs text-gray-500">
-                    Sync availability windows with Google Calendar events
-                  </p>
-                </div>
-                <div className="relative inline-block w-10 align-middle select-none">
-                  <input type="checkbox" id="toggle-sync" className="sr-only" checked readOnly />
-                  <div className="block h-6 bg-gray-300 rounded-full"></div>
-                  <div className="dot absolute left-1 top-1 bg-indigo-600 w-4 h-4 rounded-full transition"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex justify-between pt-4 border-t">
-            <Button 
-              variant="danger" 
-              onClick={disconnectGoogleCalendar}
-            >
-              Disconnect Calendar
-            </Button>
-            <Button 
-              variant="primary"
-              onClick={() => setShowCalendarModal(false)}
-            >
-              Save Settings
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Rejection Modal */}
-      <Modal
-        isOpen={showRejectionModal}
-        onClose={() => {
-          setShowRejectionModal(false);
-          setRejectionReason('');
-        }}
-        title="Reject Booking Request"
-      >
-        <div className="space-y-4">
-          <p className="text-gray-600">Are you sure you want to reject this booking request?</p>
-          
-          <div>
-            <label htmlFor="rejectionReason" className="block text-sm font-medium text-gray-700 mb-1">
-              Reason for rejection (optional)
-            </label>
-            <textarea
-              id="rejectionReason"
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              rows="3"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Provide a reason for rejection..."
-            ></textarea>
-          </div>
-          
-          <div className="flex justify-end space-x-3 pt-2">
-            <Button
-              variant="secondary"
-              onClick={() => {
-                setShowRejectionModal(false);
-                setRejectionReason('');
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="danger"
-              onClick={handleReject}
-            >
-              Confirm Rejection
-            </Button>
-          </div>
-        </div>
-      </Modal>
     </MainLayout>
   );
 }

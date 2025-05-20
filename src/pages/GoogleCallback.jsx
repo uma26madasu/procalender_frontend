@@ -1,7 +1,8 @@
+// src/pages/GoogleCallback.jsx
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../firebase';
-import { apiService } from '../api';
+import { exchangeCodeForTokens, storeCalendarTokens } from '../services/calendar/googleCalendar';
 
 export default function GoogleCallback() {
   const [status, setStatus] = useState('Processing...');
@@ -27,12 +28,15 @@ export default function GoogleCallback() {
           throw new Error('User not authenticated');
         }
         
-        // Call your backend to handle the OAuth code exchange
-        const response = await apiService.connectGoogleCalendar(code, userId);
+        // Exchange code for tokens
+        const tokenResponse = await exchangeCodeForTokens(code);
         
-        if (!response.success) {
-          throw new Error(response.message || 'Failed to connect Google Calendar');
+        if (!tokenResponse.access_token) {
+          throw new Error('Failed to get access token');
         }
+        
+        // Store tokens securely
+        storeCalendarTokens(tokenResponse);
         
         setStatus('Google Calendar connected successfully!');
         
