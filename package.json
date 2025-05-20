@@ -9,8 +9,8 @@
     "preview": "vite preview",
     "vercel-build": "vite build --mode production",
     "lint": "eslint . --ext js,jsx --fix",
-    "preview:production": "vite preview --mode production",
-    "postinstall": "vite --version"
+    "preview:production": "vite preview --mode production"
+   
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.1",
