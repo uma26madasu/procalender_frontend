@@ -4,8 +4,8 @@ import {
   signInWithEmailAndPassword,
   signOut,
   GoogleAuthProvider,
-  signInWithPopup  // Optional: For Google login
-} from "."; // Adjust path if needed
+  signInWithPopup
+} from "./firebase"; // Adjust path if needed
 
 // Sign up with email/password
 export const signUp = async (email, password) => {
@@ -35,9 +35,19 @@ export const signIn = async (email, password) => {
   }
 };
 
-// Sign out
+// Sign out - Updated to redirect to public dashboard
 export const logOut = async () => {
-  await signOut(auth);
+  try {
+    await signOut(auth);
+    // Clear any local storage
+    localStorage.clear();
+    
+    // Redirect to public dashboard (root path)
+    window.location.href = '/';
+  } catch (error) {
+    console.error('Error signing out:', error);
+    throw new Error(error.message);
+  }
 };
 
 // Optional: Google Sign-In

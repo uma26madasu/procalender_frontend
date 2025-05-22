@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { auth } from '../firebase';
 import MainLayout from '../components/layout/MainLayout';
 import { Card, Button, Badge, Modal, Alert } from '../components/UI';
+import googleCalendarService from '../services/calendar/googleCalendar';
 
 export default function MeetingViewer() {
   const [meetings, setMeetings] = useState([]);
@@ -27,101 +28,170 @@ export default function MeetingViewer() {
     const fetchMeetings = async () => {
       try {
         setLoading(true);
+        setError('');
         
-        // Simulate API delay for demonstration
-        setTimeout(() => {
-          // Mock data with approval statuses
-          const mockMeetings = [
-            {
-              id: 'm1',
-              clientName: 'John Smith',
-              clientEmail: 'john@example.com',
-              startTime: '2025-05-24T10:00:00Z',
-              endTime: '2025-05-24T10:30:00Z',
-              meetingName: 'Initial Consultation',
-              status: 'confirmed',
-              linkId: 'l1',
-              questions: [
-                { question: 'What topics would you like to discuss?', answer: 'Retirement planning and investment strategies' }
-              ]
-            },
-            {
-              id: 'm2',
-              clientName: 'Sarah Johnson',
-              clientEmail: 'sarah@example.com',
-              startTime: '2025-05-25T14:00:00Z',
-              endTime: '2025-05-25T14:45:00Z',
-              meetingName: 'Follow-up Session',
-              status: 'pending',
-              linkId: 'l2',
-              questions: [
-                { question: 'What topics would you like to discuss?', answer: 'Tax planning for small business' },
-                { question: 'How did you hear about us?', answer: 'Referral from a friend' }
-              ]
-            },
-            {
-              id: 'm3',
-              clientName: 'David Lee',
-              clientEmail: 'david@example.com',
-              startTime: '2025-05-14T09:00:00Z',
-              endTime: '2025-05-14T09:30:00Z',
-              meetingName: 'Initial Consultation',
-              status: 'completed',
-              linkId: 'l1',
-              questions: [
-                { question: 'What topics would you like to discuss?', answer: 'Estate planning options' }
-              ]
-            },
-            {
-              id: 'm4',
-              clientName: 'Emma Wilson',
-              clientEmail: 'emma@example.com',
-              startTime: '2025-05-13T11:00:00Z',
-              endTime: '2025-05-13T12:00:00Z',
-              meetingName: 'Strategy Session',
-              status: 'rejected',
-              linkId: 'l3',
-              questions: [
-                { question: 'What are your business goals?', answer: 'Expanding to new markets in the next year' }
-              ],
-              rejectionReason: 'Not available at the requested time'
-            },
-            {
-              id: 'm5',
-              clientName: 'Michael Brown',
-              clientEmail: 'michael@example.com',
-              startTime: '2025-05-26T15:00:00Z',
-              endTime: '2025-05-26T15:45:00Z',
-              meetingName: 'Consultation',
-              status: 'pending',
-              linkId: 'l4',
-              questions: [
-                { question: 'What services are you interested in?', answer: 'Financial planning and investment advice' }
-              ]
-            }
-          ];
-          
-          setMeetings(mockMeetings);
+        // Check if Google Calendar is connected
+        if (!googleCalendarService.isConnected()) {
+          setError('Google Calendar is not connected. Please connect your calendar in settings.');
           setLoading(false);
-        }, 1000);
+          return;
+        }
+
+        // Get calendar list
+        const calendars = await googleCalendarService.getCalendarList();
+        
+        // Find primary calendar
+        const primaryCalendar = calendars.find(cal => cal.primary) || calendars[0];
+        
+        if (!primaryCalendar) {
+          setError('No primary calendar found.');
+          setLoading(false);
+          return;
+        }
+
+        // Get events from the primary calendar
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+        const thirtyDaysFromNow = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
+        
+        const events = await googleCalendarService.getEvents(primaryCalendar.id, {
+          timeMin: thirtyDaysAgo.toISOString(),
+          timeMax: thirtyDaysFromNow.toISOString(),
+          singleEvents: true,
+          orderBy: 'startTime'
+        });
+
+        // Transform Google Calendar events to meeting format
+        const transformedMeetings = events.map(event => {
+          // Extract attendee info
+          const attendees = event.attendees || [];
+          const organizer = event.organizer || {};
+          
+          // Try to determine client info from attendees (first non-organizer attendee)
+          const client = attendees.find(att => att.email !== organizer.email) || {
+            email: organizer.email,
+            displayName: organizer.displayName || 'Unknown'
+          };
+
+          // Determine status based on event status and time
+          let status = 'confirmed';
+          const eventStart = new Date(event.start.dateTime || event.start.date);
+          const eventEnd = new Date(event.end.dateTime || event.end.date);
+          
+          if (event.status === 'cancelled') {
+            status = 'canceled';
+          } else if (eventEnd < now) {
+            status = 'completed';
+          } else if (event.status === 'tentative') {
+            status = 'pending';
+          }
+
+          return {
+            id: event.id,
+            clientName: client.displayName || client.email?.split('@')[0] || 'Unknown Client',
+            clientEmail: client.email || 'no-email@example.com',
+            startTime: event.start.dateTime || event.start.date,
+            endTime: event.end.dateTime || event.end.date,
+            meetingName: event.summary || 'Untitled Meeting',
+            status: status,
+            linkId: event.id, // Using event ID as link ID
+            description: event.description || '',
+            location: event.location || '',
+            meetLink: event.hangoutLink || '',
+            // Parse questions from description if they exist in a specific format
+            questions: parseQuestionsFromDescription(event.description),
+            // Store the original event for reference
+            originalEvent: event
+          };
+        });
+
+        setMeetings(transformedMeetings);
+        setLoading(false);
         
       } catch (err) {
         console.error('Error fetching meetings:', err);
-        setError('Failed to load meetings. Please try again.');
+        setError('Failed to load meetings from Google Calendar. Please try again.');
         setLoading(false);
       }
     };
     
     fetchMeetings();
+
+    // Set up event listeners for calendar updates
+    const handleCalendarUpdate = () => {
+      fetchMeetings();
+    };
+
+    googleCalendarService.addEventListener('calendar-updated', handleCalendarUpdate);
+
+    // Cleanup
+    return () => {
+      googleCalendarService.removeEventListener('calendar-updated', handleCalendarUpdate);
+    };
   }, []);
+
+  // Helper function to parse questions from description
+  const parseQuestionsFromDescription = (description) => {
+    if (!description) return [];
+    
+    // This is a simple parser - you can customize based on your format
+    // Example format: "Q: What topics? A: Retirement planning"
+    const questions = [];
+    const lines = description.split('\n');
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line.startsWith('Q:') || line.startsWith('Question:')) {
+        const question = line.replace(/^(Q:|Question:)\s*/i, '');
+        let answer = '';
+        
+        // Look for answer in next lines
+        for (let j = i + 1; j < lines.length; j++) {
+          const nextLine = lines[j].trim();
+          if (nextLine.startsWith('A:') || nextLine.startsWith('Answer:')) {
+            answer = nextLine.replace(/^(A:|Answer:)\s*/i, '');
+            i = j; // Skip to after the answer
+            break;
+          } else if (nextLine.startsWith('Q:') || nextLine.startsWith('Question:')) {
+            break; // Next question found
+          }
+        }
+        
+        if (question) {
+          questions.push({ question, answer });
+        }
+      }
+    }
+    
+    return questions;
+  };
 
   const updateMeetingStatus = async (meetingId, newStatus, reason = '') => {
     try {
       setCancelLoading(true);
       setApprovalLoading(true);
       
-      // Simulate API call with a timeout
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Find the meeting and its calendar info
+      const meeting = meetings.find(m => m.id === meetingId);
+      if (!meeting) {
+        throw new Error('Meeting not found');
+      }
+
+      // Get the primary calendar
+      const calendars = await googleCalendarService.getCalendarList();
+      const primaryCalendar = calendars.find(cal => cal.primary) || calendars[0];
+
+      if (newStatus === 'canceled') {
+        // Delete the event from Google Calendar
+        await googleCalendarService.deleteEvent(primaryCalendar.id, meetingId);
+      } else if (newStatus === 'confirmed') {
+        // Update event status in Google Calendar
+        const updatedEvent = {
+          ...meeting.originalEvent,
+          status: 'confirmed'
+        };
+        await googleCalendarService.updateEvent(primaryCalendar.id, meetingId, updatedEvent);
+      }
       
       // Update the meeting in the local state
       setMeetings(meetings.map(meeting => 
@@ -501,6 +571,34 @@ export default function MeetingViewer() {
               </div>
             </div>
             
+            {selectedMeeting.location && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 uppercase mb-2">Location</h4>
+                <p className="text-gray-700">{selectedMeeting.location}</p>
+              </div>
+            )}
+            
+            {selectedMeeting.meetLink && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 uppercase mb-2">Meeting Link</h4>
+                <a 
+                  href={selectedMeeting.meetLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-indigo-600 hover:text-indigo-800 underline"
+                >
+                  Join Google Meet
+                </a>
+              </div>
+            )}
+            
+            {selectedMeeting.description && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-500 uppercase mb-2">Description</h4>
+                <p className="text-gray-700 whitespace-pre-wrap">{selectedMeeting.description}</p>
+              </div>
+            )}
+            
             {selectedMeeting.rejectionReason && (
               <div className="bg-red-50 p-4 rounded-lg border border-red-100">
                 <h4 className="text-sm font-medium text-red-800 mb-1">Rejection Reason</h4>
@@ -523,29 +621,33 @@ export default function MeetingViewer() {
             )}
             
             <div>
-              <h4 className="text-sm font-medium text-gray-500 uppercase mb-2">Calendar Integration</h4>
+              <h4 className="text-sm font-medium text-gray-500 uppercase mb-2">Calendar Actions</h4>
               <div className="space-x-3">
                 <Button 
                   variant="secondary" 
                   size="sm"
+                  onClick={async () => {
+                    // Refresh from Google Calendar
+                    try {
+                      const calendars = await googleCalendarService.getCalendarList();
+                      const primaryCalendar = calendars.find(cal => cal.primary) || calendars[0];
+                      const event = await googleCalendarService.getEvents(primaryCalendar.id, {
+                        timeMin: selectedMeeting.startTime,
+                        timeMax: selectedMeeting.endTime,
+                        q: selectedMeeting.id
+                      });
+                      setSuccessMessage('Meeting refreshed from Google Calendar');
+                    } catch (err) {
+                      setError('Failed to refresh meeting');
+                    }
+                  }}
                   icon={
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                   }
                 >
-                  Add to Google Calendar
-                </Button>
-                <Button 
-                  variant="secondary" 
-                  size="sm"
-                  icon={
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  }
-                >
-                  Download ICS File
+                  Refresh from Calendar
                 </Button>
               </div>
             </div>
@@ -604,7 +706,7 @@ export default function MeetingViewer() {
           )}
           
           <p className="text-gray-500 text-sm">
-            Canceling this meeting will send a notification to the client and remove it from both of your calendars.
+            Canceling this meeting will remove it from your Google Calendar.
           </p>
         </div>
       </Modal>
