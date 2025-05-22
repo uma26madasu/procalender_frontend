@@ -1,13 +1,14 @@
-import { auth } from "./config"; // Keep this - your auth instance
+import { auth } from "./config";
 import { 
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   GoogleAuthProvider,
   signInWithPopup
-} from "firebase/auth"; // Import these directly from Firebase
+} from "firebase/auth";
+import { useAuthState } from "react-firebase-hooks/auth"; // Add this import
 
-// Sign up with email/password
+// Auth functions
 export const signUp = async (email, password) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(
@@ -15,13 +16,12 @@ export const signUp = async (email, password) => {
       email,
       password
     );
-    return userCredential.user; // Return user data
+    return userCredential.user;
   } catch (error) {
-    throw new Error(error.message); // Throw error for UI handling
+    throw new Error(error.message);
   }
 };
 
-// Sign in with email/password
 export const signIn = async (email, password) => {
   try {
     const userCredential = await signInWithEmailAndPassword(
@@ -35,14 +35,10 @@ export const signIn = async (email, password) => {
   }
 };
 
-// Sign out - Updated to redirect to public dashboard
 export const logOut = async () => {
   try {
     await signOut(auth);
-    // Clear any local storage
     localStorage.clear();
-    
-    // Redirect to public dashboard (root path)
     window.location.href = '/';
   } catch (error) {
     console.error('Error signing out:', error);
@@ -50,7 +46,6 @@ export const logOut = async () => {
   }
 };
 
-// Optional: Google Sign-In
 export const signInWithGoogle = async () => {
   const provider = new GoogleAuthProvider();
   try {
@@ -60,3 +55,11 @@ export const signInWithGoogle = async () => {
     throw new Error(error.message);
   }
 };
+
+// Add this hook
+export const useAuth = () => {
+  return useAuthState(auth);
+};
+
+// Export auth instance
+export { auth };

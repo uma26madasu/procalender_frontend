@@ -2,19 +2,41 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../firebase/auth';
 
 const BookingLinks = () => {
-  const { user } = useAuth();
+  const [user, loading, error] = useAuth(); // Destructure the hook's return value
   const [bookingLinks, setBookingLinks] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoadingLinks, setIsLoadingLinks] = useState(true);
 
   useEffect(() => {
-    // TODO: Fetch user's booking links from your backend/Firebase
-    setLoading(false);
+    if (!user) return;
+    
+    const fetchBookingLinks = async () => {
+      try {
+        // TODO: Fetch user's booking links from your backend/Firebase
+        // Example:
+        // const links = await fetchBookingLinksForUser(user.uid);
+        // setBookingLinks(links);
+        setIsLoadingLinks(false);
+      } catch (err) {
+        console.error('Failed to fetch booking links:', err);
+        setIsLoadingLinks(false);
+      }
+    };
+
+    fetchBookingLinks();
   }, [user]);
 
-  if (loading) {
+  if (loading || isLoadingLinks) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 text-red-600 rounded-lg">
+        Error: {error.message}
       </div>
     );
   }
