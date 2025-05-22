@@ -2,55 +2,61 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../firebase/auth';
 
 const BookingLinks = () => {
-  const { user, loading, error } = useAuth();
+  const { user, loading: authLoading, error: authError } = useAuth();
   const [bookingLinks, setBookingLinks] = useState([]);
-  const [isLoadingLinks, setIsLoadingLinks] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState(null);
 
   useEffect(() => {
     if (!user) return;
-    
+
     const fetchBookingLinks = async () => {
       try {
-        // TODO: Replace with actual API call
-        // const response = await fetch(`/api/booking-links?uid=${user.uid}`);
-        // const data = await response.json();
+        setIsLoading(true);
+        setApiError(null);
         
-        // Mock data - remove in production
-        const mockLinks = [
-          { 
-            id: '1', 
-            title: '30-min Meeting', 
-            url: 'cal.com/meet/30min',
-            createdAt: new Date().toISOString()
-          },
-          { 
-            id: '2', 
-            title: '60-min Consultation', 
-            url: 'cal.com/meet/60min',
-            createdAt: new Date().toISOString()
-          }
-        ];
-        
-        setBookingLinks(mockLinks);
-        setIsLoadingLinks(false);
+        const response = await fetch(`/api/booking-links?uid=${user.uid}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setBookingLinks(data);
       } catch (err) {
         console.error('Failed to fetch booking links:', err);
-        setIsLoadingLinks(false);
+        setApiError(err.message);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchBookingLinks();
   }, [user]);
 
-  if (error) {
+  if (authLoading) {
     return (
-      <div className="p-4 bg-red-50 text-red-600 rounded-lg mx-4 my-8">
-        Error: {error.message}
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
-  if (isLoadingLinks) {
+  if (authError) {
+    return (
+      <div className="p-4 bg-red-50 text-red-600 rounded-lg mx-4 my-8">
+        Authentication Error: {authError.message}
+      </div>
+    );
+  }
+
+  if (apiError) {
+    return (
+      <div className="p-4 bg-red-50 text-red-600 rounded-lg mx-4 my-8">
+        API Error: {apiError}
+      </div>
+    );
+  }
+
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -68,7 +74,7 @@ const BookingLinks = () => {
       <div className="mb-6">
         <button 
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
-          onClick={() => {/* Add create link logic */}}
+          onClick={() => {/* Implement create link logic */}}
         >
           + Create New Booking Link
         </button>
@@ -84,11 +90,8 @@ const BookingLinks = () => {
                 </svg>
               </div>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No booking links yet</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No booking links found</h3>
             <p className="text-gray-500 mb-4">Create your first booking link to start accepting appointments</p>
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">
-              Create Your First Link
-            </button>
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
