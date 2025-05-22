@@ -1,11 +1,11 @@
+import { auth } from "./config"; // Keep this - your auth instance
 import { 
-  auth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
   GoogleAuthProvider,
   signInWithPopup
-} from "./config"; // Adjust path if needed
+} from "firebase/auth"; // Import these directly from Firebase
 
 // Sign up with email/password
 export const signUp = async (email, password) => {
