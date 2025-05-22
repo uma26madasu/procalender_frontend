@@ -10,7 +10,7 @@ import SignupPage from './pages/SignupPage';
 import Dashboard from './pages/Dashboard';
 import MeetingViewer from './pages/MeetingViewer';
 import Availability from './pages/ApprovalsPage'; // or wherever your availability page is
-//import BookingLinks from './pages/BookingLinks'; // adjust if different
+import BookingLinks from './pages/BookingLinks'; // adjust if different
 
 // Loading component
 const LoadingScreen = () => (
