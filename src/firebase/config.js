@@ -1,5 +1,7 @@
 // src/firebase/config.js
 // This file centralizes all Firebase configuration in one place
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
 
 // First try to get config from environment variables
 const getFirebaseConfig = () => {
@@ -20,7 +22,7 @@ const getFirebaseConfig = () => {
   }
   
   // Then try to get from import.meta.env (Vite environment variables)
-  if (import.meta && import.meta.env) {
+  if (typeof import.meta !== 'undefined' && import.meta.env) {
     return {
       apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
       authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -35,15 +37,7 @@ const getFirebaseConfig = () => {
   // Fallback to hardcoded config as last resort
   // Note: In production, this should ideally never be reached
   console.warn('Using fallback Firebase configuration. This is not recommended for production.');
-  return {
-    apiKey: "AIzaSyCYsr6oZ3j-R7nJe6xWaRO6Q5xi0Rk3IV8",
-    authDomain: "procalenderfrontend.firebaseapp.com",
-    projectId: "procalenderfrontend",
-    storageBucket: "procalenderfrontend.firebasestorage.app",
-    messagingSenderId: "302768668350",
-    appId: "1:302768668350:web:b92f80489662289e28e8ef",
-    measurementId: "G-QJWKGJN76S"
-  };
+  throw new Error('Firebase configuration not found in environment variables');
 };
 
 // Validate Firebase config to ensure all required fields are present
@@ -63,9 +57,22 @@ const validateFirebaseConfig = (config) => {
   return true;
 };
 
-// Export the config
+// Get and validate the config
 const firebaseConfig = getFirebaseConfig();
 const isValidConfig = validateFirebaseConfig(firebaseConfig);
 
-// Export a flag indicating if config is valid
-export { firebaseConfig, isValidConfig };
+// Initialize Firebase only if config is valid
+let app;
+let auth;
+
+if (isValidConfig) {
+  try {
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+  } catch (error) {
+    console.error('Firebase initialization error', error);
+    isValidConfig = false;
+  }
+}
+
+export { firebaseConfig, isValidConfig, auth };
