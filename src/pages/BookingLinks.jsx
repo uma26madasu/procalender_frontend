@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../firebase/auth';
 
 const BookingLinks = () => {
-  const [user, loading, error] = useAuth(); // Destructure the hook's return value
+  const { user, loading, error } = useAuth();
   const [bookingLinks, setBookingLinks] = useState([]);
   const [isLoadingLinks, setIsLoadingLinks] = useState(true);
 
@@ -11,10 +11,27 @@ const BookingLinks = () => {
     
     const fetchBookingLinks = async () => {
       try {
-        // TODO: Fetch user's booking links from your backend/Firebase
-        // Example:
-        // const links = await fetchBookingLinksForUser(user.uid);
-        // setBookingLinks(links);
+        // TODO: Replace with actual API call
+        // const response = await fetch(`/api/booking-links?uid=${user.uid}`);
+        // const data = await response.json();
+        
+        // Mock data - remove in production
+        const mockLinks = [
+          { 
+            id: '1', 
+            title: '30-min Meeting', 
+            url: 'cal.com/meet/30min',
+            createdAt: new Date().toISOString()
+          },
+          { 
+            id: '2', 
+            title: '60-min Consultation', 
+            url: 'cal.com/meet/60min',
+            createdAt: new Date().toISOString()
+          }
+        ];
+        
+        setBookingLinks(mockLinks);
         setIsLoadingLinks(false);
       } catch (err) {
         console.error('Failed to fetch booking links:', err);
@@ -25,18 +42,18 @@ const BookingLinks = () => {
     fetchBookingLinks();
   }, [user]);
 
-  if (loading || isLoadingLinks) {
+  if (error) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="p-4 bg-red-50 text-red-600 rounded-lg mx-4 my-8">
+        Error: {error.message}
       </div>
     );
   }
 
-  if (error) {
+  if (isLoadingLinks) {
     return (
-      <div className="p-4 bg-red-50 text-red-600 rounded-lg">
-        Error: {error.message}
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
@@ -48,14 +65,15 @@ const BookingLinks = () => {
         <p className="text-gray-600">Manage and share your scheduling links</p>
       </div>
 
-      {/* Create New Link Button */}
       <div className="mb-6">
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">
+        <button 
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
+          onClick={() => {/* Add create link logic */}}
+        >
           + Create New Booking Link
         </button>
       </div>
 
-      {/* Booking Links List */}
       <div className="bg-white rounded-lg shadow">
         {bookingLinks.length === 0 ? (
           <div className="p-8 text-center">
@@ -74,19 +92,27 @@ const BookingLinks = () => {
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
-            {bookingLinks.map((link, index) => (
-              <div key={index} className="p-6 hover:bg-gray-50">
+            {bookingLinks.map((link) => (
+              <div key={link.id} className="p-6 hover:bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-medium text-gray-900">{link.title}</h3>
-                    <p className="text-sm text-gray-500">{link.url}</p>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <p className="text-sm text-gray-500">{link.url}</p>
+                      <button 
+                        className="text-blue-500 text-xs"
+                        onClick={() => navigator.clipboard.writeText(link.url)}
+                      >
+                        Copy
+                      </button>
+                    </div>
                   </div>
                   <div className="flex space-x-2">
                     <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                      Copy Link
-                    </button>
-                    <button className="text-gray-600 hover:text-gray-700 text-sm font-medium">
                       Edit
+                    </button>
+                    <button className="text-red-600 hover:text-red-700 text-sm font-medium">
+                      Delete
                     </button>
                   </div>
                 </div>
