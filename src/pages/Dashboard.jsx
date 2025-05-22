@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../firebase';
-import { getGoogleAuthUrl, isCalendarConnected as checkCalendarConnection, disconnectGoogleCalendar as disconnectGCal } from '../services/calendar/googleCalendar';
 
 // Import components using the barrel pattern
 import { MainLayout, Card, Button, Badge, Avatar, Alert, Modal } from '../components';
@@ -31,35 +30,43 @@ function Dashboard() {
   useEffect(() => {
     const checkCalendarConnectionStatus = async () => {
       try {
-        // Use the isCalendarConnected function from googleCalendar.js
-        const connected = checkCalendarConnection();
-        setIsCalendarConnected(connected);
+        if (!user?.email) {
+          setIsCalendarConnected(false);
+          return;
+        }
+
+        // Call your backend API to check connection status
+        const response = await fetch(
+          `https://procalender-backend.onrender.com/api/auth/google/status?email=${encodeURIComponent(user.email)}`
+        );
+        const data = await response.json();
         
-        if (connected) {
-          // Fetch calendar stats from API instead of hardcoded values
-          // This would typically be an API call
-          const fetchCalendarStats = async () => {
-            try {
-              // Replace with actual API call
-              // const response = await api.getCalendarStats();
-              // setCalendarStats(response.data);
-              
-              // For now, just set loading state until API is implemented
-              setCalendarStats(null);
-            } catch (error) {
-              console.error('Error fetching calendar stats:', error);
-            }
-          };
+        if (data.success) {
+          setIsCalendarConnected(data.connected);
           
-          fetchCalendarStats();
+          if (data.connected) {
+            // You can set some calendar stats here if needed
+            setCalendarStats({
+              connectedCalendars: 1,
+              upcomingEvents: 0, // You can fetch this from another API call later
+              primaryCalendar: 'Google Calendar',
+              connectedAt: data.connectedAt
+            });
+          }
+        } else {
+          setIsCalendarConnected(false);
         }
       } catch (err) {
         console.error('Error checking calendar connection:', err);
+        setIsCalendarConnected(false);
       }
     };
     
-    checkCalendarConnectionStatus();
-  }, []);
+    // Only check if user is loaded from Firebase
+    if (user) {
+      checkCalendarConnectionStatus();
+    }
+  }, [user]);
 
   // Fetch pending approvals
   useEffect(() => {
@@ -141,9 +148,17 @@ function Dashboard() {
   const connectGoogleCalendar = async () => {
     try {
       setIsCalendarConnecting(true);
-      // Get the auth URL from our service - note it doesn't need await anymore
-      const authUrl = getGoogleAuthUrl();
-      window.location.href = authUrl;
+      
+      // Get the auth URL from your backend
+      const response = await fetch('https://procalender-backend.onrender.com/api/auth/google/url');
+      const data = await response.json();
+      
+      if (data.success) {
+        // Redirect to Google OAuth
+        window.location.href = data.url;
+      } else {
+        throw new Error('Failed to get OAuth URL');
+      }
     } catch (err) {
       console.error('Error starting Google Auth flow:', err);
       setError('Failed to start Google Calendar authorization. Please try again.');
@@ -154,12 +169,25 @@ function Dashboard() {
   // Disconnect Google Calendar
   const disconnectGoogleCalendar = async () => {
     try {
-      // Use the function from googleCalendar.js
-      await disconnectGCal();
-      setIsCalendarConnected(false);
-      setCalendarStats(null);
-      setSuccessMessage('Google Calendar disconnected successfully.');
-      setShowCalendarModal(false);
+      // Call your backend API to disconnect
+      const response = await fetch('https://procalender-backend.onrender.com/api/auth/google/revoke', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user?.uid })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setIsCalendarConnected(false);
+        setCalendarStats(null);
+        setSuccessMessage('Google Calendar disconnected successfully.');
+        setShowCalendarModal(false);
+      } else {
+        throw new Error(data.message || 'Failed to disconnect');
+      }
     } catch (err) {
       console.error('Error disconnecting calendar:', err);
       setError('Failed to disconnect Google Calendar. Please try again.');
@@ -680,6 +708,87 @@ function Dashboard() {
         </Card>
       </div>
 
+      {/* Calendar Connection Modal */}
+      <Modal
+        isOpen={showCalendarModal}
+        onClose={() => setShowCalendarModal(false)}
+        title="Calendar Connection"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            Your Google Calendar is successfully connected. ProCalendar will automatically sync your availability.
+          </p>
+          
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-medium">Primary Calendar:</span>
+              <span>{calendarStats?.primaryCalendar || 'Google Calendar'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-medium">Connected Since:</span>
+              <span>{calendarStats?.connectedAt ? new Date(calendarStats.connectedAt).toLocaleDateString() : 'Recently'}</span>
+            </div>
+          </div>
+          
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button
+              variant="danger"
+              onClick={disconnectGoogleCalendar}
+            >
+              Disconnect
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setShowCalendarModal(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Rejection Modal */}
+      <Modal
+        isOpen={showRejectionModal}
+        onClose={() => {
+          setShowRejectionModal(false);
+          setSelectedForRejection(null);
+        }}
+        title="Reject Booking Request"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            Please provide a reason for rejecting this booking request.
+          </p>
+          
+          <textarea
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            rows={3}
+            placeholder="Reason for rejection..."
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+          />
+          
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button
+              variant="danger"
+              onClick={handleReject}
+              disabled={!rejectionReason.trim()}
+            >
+              Confirm Rejection
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowRejectionModal(false);
+                setSelectedForRejection(null);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </MainLayout>
   );
 }
