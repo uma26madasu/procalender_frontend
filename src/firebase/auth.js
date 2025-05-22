@@ -5,7 +5,7 @@ import {
   signOut,
   GoogleAuthProvider,
   signInWithPopup
-} from "./firebase"; // Adjust path if needed
+} from "./config"; // Adjust path if needed
 
 // Sign up with email/password
 export const signUp = async (email, password) => {
