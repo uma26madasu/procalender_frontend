@@ -15,21 +15,21 @@ const BookingLinks = React.lazy(() => import('./pages/BookingLinks'));
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
-  if (loading) return <LoadingSpinner />; // Changed from LoadingScreen
+  if (loading) return <LoadingSpinner />; 
   return user ? children : <Navigate to="/login" replace />;
 };
 
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
-  if (loading) return <LoadingSpinner />; // Changed from LoadingScreen
+  if (loading) return <LoadingSpinner />; 
   return !user ? children : <Navigate to="/dashboard" replace />;
 };
 
 function App() {
   return (
     <BrowserRouter>
-      <React.Suspense fallback={<LoadingSpinner />}> {/* Changed from LoadingScreen */}
+      <React.Suspense fallback={<LoadingSpinner />}> 
         <Routes>
           <Route path="/" element={
             <PublicRoute>
