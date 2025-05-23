@@ -1,145 +1,82 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './firebase/auth'; // Adjust path to your firebase config
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
+import LoadingSpinner from './components/LoadingSpinner';
 
-// Import your pages
-import PublicDashboard from './pages/PublicDashboard';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import Dashboard from './pages/Dashboard';
-import MeetingViewer from './pages/MeetingViewer';
-import Availability from './pages/ApprovalsPage'; // or wherever your availability page is
-import BookingLinks from './pages/BookingLinks'; // adjust if different
+// Lazy load pages
+const PublicDashboard = React.lazy(() => import('./pages/PublicDashboard'));
+const LoginPage = React.lazy(() => import('./pages/LoginPage'));
+const SignupPage = React.lazy(() => import('./pages/SignupPage'));
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const MeetingViewer = React.lazy(() => import('./pages/MeetingViewer'));
+const Availability = React.lazy(() => import('./pages/ApprovalsPage'));
+const BookingLinks = React.lazy(() => import('./pages/BookingLinks'));
 
-// Loading component
-const LoadingScreen = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-50">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-      <p className="mt-4 text-gray-600">Loading Slotify...</p>
-    </div>
-  </div>
-);
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useAuth();
 
-// Protected Route Component
-function ProtectedRoute({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  if (loading) return <LoadingScreen />;
+  return user ? children : <Navigate to="/login" replace />;
+};
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
+const PublicRoute = ({ children }) => {
+  const { user, loading } = useAuth();
 
-    return () => unsubscribe();
-  }, []);
-
-  if (loading) {
-    return <LoadingScreen />;
-  }
-
-  if (!user) {
-    return <Navigate to="/" replace />;
-  }
-
-  return children;
-}
-
-// Public Route Component
-function PublicRoute({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  if (loading) {
-    return <LoadingScreen />;
-  }
-
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return children;
-}
+  if (loading) return <LoadingScreen />;
+  return !user ? children : <Navigate to="/dashboard" replace />;
+};
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* Public Routes */}
-        <Route 
-          path="/" 
-          element={
+    <BrowserRouter>
+      <React.Suspense fallback={<LoadingScreen />}>
+        <Routes>
+          <Route path="/" element={
             <PublicRoute>
               <PublicDashboard />
             </PublicRoute>
-          } 
-        />
-        <Route 
-          path="/login" 
-          element={
+          } />
+          
+          <Route path="/login" element={
             <PublicRoute>
               <LoginPage />
             </PublicRoute>
-          } 
-        />
-        <Route 
-          path="/signup" 
-          element={
+          } />
+          
+          <Route path="/signup" element={
             <PublicRoute>
               <SignupPage />
             </PublicRoute>
-          } 
-        />
-        
-        {/* Protected Routes */}
-        <Route 
-          path="/dashboard" 
-          element={
+          } />
+          
+          <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/meetings" 
-          element={
+          } />
+          
+          <Route path="/meetings" element={
             <ProtectedRoute>
               <MeetingViewer />
             </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/availability" 
-          element={
+          } />
+          
+          <Route path="/availability" element={
             <ProtectedRoute>
               <Availability />
             </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/booking-links" 
-          element={
+          } />
+          
+          <Route path="/booking-links" element={
             <ProtectedRoute>
               <BookingLinks />
             </ProtectedRoute>
-          } 
-        />
-        
-        {/* Catch all - redirect to home */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+          } />
+          
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </React.Suspense>
+    </BrowserRouter>
   );
 }
 
