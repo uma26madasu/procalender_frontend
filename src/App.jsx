@@ -1,7 +1,8 @@
 import React from 'react';
+import HomePage from './pages/HomePage';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
-import LoadingSpinner from './components/LoadingSpinner'; // Fixed import (removed curly braces)
+import LoadingSpinner from './components/LoadingSpinner';
 
 // Lazy load pages
 const PublicDashboard = React.lazy(() => import('./pages/PublicDashboard'));
@@ -29,9 +30,11 @@ const PublicRoute = ({ children }) => {
 function App() {
   return (
     <BrowserRouter>
-      <React.Suspense fallback={<LoadingSpinner />}> 
+      <React.Suspense fallback={<LoadingSpinner />}>
         <Routes>
-          <Route path="/" element={
+          <Route path="/" element={<HomePage />} />
+          
+          <Route path="/public" element={
             <PublicRoute>
               <PublicDashboard />
             </PublicRoute>

@@ -1,4 +1,4 @@
-import { auth } from "./config"; // Now this import will work
+import { auth } from "./config";
 import { 
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -8,7 +8,10 @@ import {
 } from "firebase/auth";
 import { useAuthState } from "react-firebase-hooks/auth";
 
-// Auth functions
+// Initialize Google provider once
+const googleProvider = new GoogleAuthProvider();
+
+// Authentication functions
 export const signUp = async (email, password) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -39,20 +42,19 @@ export const logOut = async () => {
 };
 
 export const signInWithGoogle = async () => {
-  const provider = new GoogleAuthProvider();
   try {
-    const result = await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (error) {
     throw new Error(error.message);
   }
 };
 
-// Auth hook
+// Auth state hook
 export const useAuth = () => {
   const [user, loading, error] = useAuthState(auth);
   return { user, loading, error };
 };
 
-// Export auth instance if needed elsewhere
+// Export auth instance for direct use when needed
 export { auth };
