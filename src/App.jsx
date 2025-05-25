@@ -1,6 +1,8 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import HomePage from './pages/HomePage';
+import SignupPage from './pages/SignupPage';
+import Dashboard from './pages/Dashboard'; // Updated path to pages folder
 
 // Simple fallback component for missing pages
 const ComingSoon = ({ pageName }) => (
@@ -22,9 +24,9 @@ function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/signup" element={<ComingSoon pageName="Sign Up" />} />
+      <Route path="/signup" element={<SignupPage />} />
       <Route path="/login" element={<ComingSoon pageName="Login" />} />
-      <Route path="/dashboard" element={<ComingSoon pageName="Dashboard" />} />
+      <Route path="/dashboard" element={<Dashboard />} /> {/* Use actual Dashboard component */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
