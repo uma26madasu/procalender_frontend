@@ -1,84 +1,33 @@
 import React from 'react';
 import HomePage from './pages/HomePage';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './contexts/AuthContext';
-import LoadingSpinner from './components/LoadingSpinner';
 
-// Lazy load pages
-const PublicDashboard = React.lazy(() => import('./pages/PublicDashboard'));
-const LoginPage = React.lazy(() => import('./pages/LoginPage'));
-const SignupPage = React.lazy(() => import('./pages/SignupPage'));
-const Dashboard = React.lazy(() => import('./pages/Dashboard'));
-const MeetingViewer = React.lazy(() => import('./pages/MeetingViewer'));
-const Availability = React.lazy(() => import('./pages/ApprovalsPage'));
-const BookingLinks = React.lazy(() => import('./pages/BookingLinks'));
-
-const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) return <LoadingSpinner />; 
-  return user ? children : <Navigate to="/login" replace />;
-};
-
-const PublicRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) return <LoadingSpinner />; 
-  return !user ? children : <Navigate to="/dashboard" replace />;
-};
+// Simple fallback component for missing pages
+const ComingSoon = ({ pageName }) => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="text-center">
+      <h1 className="text-4xl font-bold text-gray-900 mb-4">{pageName}</h1>
+      <p className="text-gray-600 mb-8">This page is coming soon!</p>
+      <button 
+        onClick={() => window.location.href = '/'}
+        className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+      >
+        Back to Home
+      </button>
+    </div>
+  </div>
+);
 
 function App() {
   return (
     <BrowserRouter>
-      <React.Suspense fallback={<LoadingSpinner />}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          
-          <Route path="/public" element={
-            <PublicRoute>
-              <PublicDashboard />
-            </PublicRoute>
-          } />
-          
-          <Route path="/login" element={
-            <PublicRoute>
-              <LoginPage />
-            </PublicRoute>
-          } />
-          
-          <Route path="/signup" element={
-            <PublicRoute>
-              <SignupPage />
-            </PublicRoute>
-          } />
-          
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/meetings" element={
-            <ProtectedRoute>
-              <MeetingViewer />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/availability" element={
-            <ProtectedRoute>
-              <Availability />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/booking-links" element={
-            <ProtectedRoute>
-              <BookingLinks />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </React.Suspense>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/signup" element={<ComingSoon pageName="Sign Up" />} />
+        <Route path="/login" element={<ComingSoon pageName="Login" />} />
+        <Route path="/dashboard" element={<ComingSoon pageName="Dashboard" />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </BrowserRouter>
   );
 }
