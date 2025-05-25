@@ -1,6 +1,6 @@
 import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import HomePage from './pages/HomePage';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 // Simple fallback component for missing pages
 const ComingSoon = ({ pageName }) => (
@@ -20,15 +20,13 @@ const ComingSoon = ({ pageName }) => (
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/signup" element={<ComingSoon pageName="Sign Up" />} />
-        <Route path="/login" element={<ComingSoon pageName="Login" />} />
-        <Route path="/dashboard" element={<ComingSoon pageName="Dashboard" />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/signup" element={<ComingSoon pageName="Sign Up" />} />
+      <Route path="/login" element={<ComingSoon pageName="Login" />} />
+      <Route path="/dashboard" element={<ComingSoon pageName="Dashboard" />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
