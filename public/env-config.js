@@ -18,6 +18,6 @@
       
       // Version info (useful for debugging)
       VITE_APP_VERSION: '1.0.0',
-      VITE_APP_BUILD_DATE: '2025-05-20T04:41:27.021Z'
+      VITE_APP_BUILD_DATE: '2025-05-24T23:23:58.997Z'
     };
   
