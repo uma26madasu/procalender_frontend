@@ -1,228 +1,274 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, BarChart3, Clock, CheckCircle, ArrowRight, Shield } from 'lucide-react';
+import { Calendar, Clock, Users, CheckCircle, ArrowRight, Menu, X } from 'lucide-react';
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
+  const [showAboutModal, setShowAboutModal] = useState(false);
 
-  const handleSignup = () => {
-    console.log('Navigating to signup');
-    navigate('/signup');
-  };
+  const PricingModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 className="text-xl font-bold text-gray-900 mb-4">Pricing</h3>
+        <p className="text-gray-600 mb-6">
+          We're working hard to bring you the best scheduling experience. 
+          Our pricing plans are coming soon and will be designed to fit your needs!
+        </p>
+        <div className="text-center">
+          <p className="text-2xl font-bold text-blue-600 mb-4">Coming Soon!</p>
+          <p className="text-sm text-gray-500 mb-6">Stay tuned for our competitive pricing plans</p>
+        </div>
+        <button
+          onClick={() => setShowPricingModal(false)}
+          className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+
+  const AboutModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+        <h3 className="text-xl font-bold text-gray-900 mb-4">About Slotify</h3>
+        <div className="space-y-4 text-gray-600">
+          <p>
+            <strong className="text-gray-900">Slotify</strong> is your intelligent scheduling companion that transforms 
+            calendar chaos into organized efficiency. We help professionals, teams, and businesses manage their time better.
+          </p>
+          
+          <div className="space-y-3">
+            <div className="flex items-start space-x-3">
+              <Calendar className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div>
+                <h4 className="font-semibold text-gray-900">Smart Scheduling</h4>
+                <p className="text-sm">Automatically find the best meeting times based on everyone's availability</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start space-x-3">
+              <Users className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div>
+                <h4 className="font-semibold text-gray-900">Team Collaboration</h4>
+                <p className="text-sm">Seamlessly coordinate with team members and external stakeholders</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start space-x-3">
+              <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div>
+                <h4 className="font-semibold text-gray-900">Time Management</h4>
+                <p className="text-sm">Track your productivity and optimize your schedule for maximum efficiency</p>
+              </div>
+            </div>
+          </div>
+          
+          <p className="border-t pt-4">
+            Our mission is to help you focus on what matters most by taking the complexity out of scheduling. 
+            Whether you're a freelancer, consultant, or part of a large organization, Slotify adapts to your workflow.
+          </p>
+        </div>
+        
+        <button
+          onClick={() => setShowAboutModal(false)}
+          className="w-full mt-6 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Navigation */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* Header */}
+      <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <Calendar className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">Slotify</span>
+          <div className="flex justify-between items-center py-6 md:justify-start md:space-x-10">
+            <div className="flex justify-start lg:w-0 lg:flex-1">
+              <div className="flex items-center space-x-2">
+                <Calendar className="h-8 w-8 text-blue-600" />
+                <span className="text-2xl font-bold text-gray-900">Slotify</span>
+              </div>
             </div>
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-600 hover:text-blue-600 transition-colors">Features</a>
-              <a href="#pricing" className="text-gray-600 hover:text-blue-600 transition-colors">Pricing</a>
-              <a href="#about" className="text-gray-600 hover:text-blue-600 transition-colors">About</a>
-              <button onClick={handleSignup} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+            
+            {/* Desktop Menu */}
+            <nav className="hidden md:flex space-x-10">
+              <a className="text-base font-medium text-gray-500 hover:text-gray-900 cursor-pointer">Features</a>
+              <button 
+                onClick={() => setShowPricingModal(true)}
+                className="text-base font-medium text-gray-500 hover:text-gray-900"
+              >
+                Pricing
+              </button>
+              <button 
+                onClick={() => setShowAboutModal(true)}
+                className="text-base font-medium text-gray-500 hover:text-gray-900"
+              >
+                About
+              </button>
+            </nav>
+            
+            <div className="hidden md:flex items-center justify-end md:flex-1 lg:w-0 space-x-4">
+              <button
+                onClick={() => navigate('/login')}
+                className="whitespace-nowrap text-base font-medium text-gray-500 hover:text-gray-900"
+              >
+                Sign in
+              </button>
+              <button
+                onClick={() => navigate('/signup')}
+                className="whitespace-nowrap inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700"
+              >
                 Get Started
+              </button>
+            </div>
+            
+            {/* Mobile menu button */}
+            <div className="md:hidden">
+              <button
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+                className="bg-white rounded-md p-2 inline-flex items-center justify-center text-gray-400 hover:text-gray-500 hover:bg-gray-100"
+              >
+                {showMobileMenu ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </button>
             </div>
           </div>
         </div>
-      </nav>
+
+        {/* Mobile Menu */}
+        {showMobileMenu && (
+          <div className="md:hidden">
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
+              <a className="text-gray-500 hover:text-gray-900 block px-3 py-2 text-base font-medium cursor-pointer">Features</a>
+              <button 
+                onClick={() => setShowPricingModal(true)}
+                className="text-gray-500 hover:text-gray-900 block px-3 py-2 text-base font-medium w-full text-left"
+              >
+                Pricing
+              </button>
+              <button 
+                onClick={() => setShowAboutModal(true)}
+                className="text-gray-500 hover:text-gray-900 block px-3 py-2 text-base font-medium w-full text-left"
+              >
+                About
+              </button>
+              <button
+                onClick={() => navigate('/login')}
+                className="text-gray-500 hover:text-gray-900 block px-3 py-2 text-base font-medium w-full text-left"
+              >
+                Sign in
+              </button>
+              <button
+                onClick={() => navigate('/signup')}
+                className="bg-blue-600 text-white block px-3 py-2 text-base font-medium w-full text-left rounded-md"
+              >
+                Get Started
+              </button>
+            </div>
+          </div>
+        )}
+      </header>
 
       {/* Hero Section */}
-      <section className="pt-20 pb-32 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6 leading-tight">
-            Schedule smarter,
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-              {" "}not harder
-            </span>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <div className="text-center">
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+            Schedule smarter, <span className="text-blue-600">not harder</span>
           </h1>
-          
-          <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-            Transform your calendar chaos into organized efficiency. Slotify helps you manage meetings, 
-            track availability, and boost productivity with intelligent scheduling.
+          <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto">
+            Transform your calendar chaos into organized efficiency. Slotify helps you 
+            manage meetings, track availability, and boost productivity with intelligent 
+            scheduling.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-            <button onClick={handleSignup} className="bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 transition-all transform hover:scale-105 shadow-lg hover:shadow-xl inline-flex items-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={() => navigate('/signup')}
+              className="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 text-lg font-semibold flex items-center justify-center transition-colors"
+            >
               Start Free Trial
               <ArrowRight className="ml-2 h-5 w-5" />
             </button>
-            <button className="border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl text-lg font-semibold hover:border-blue-600 hover:text-blue-600 transition-all">
+            <button className="border border-gray-300 text-gray-700 px-8 py-4 rounded-lg hover:bg-gray-50 text-lg font-semibold transition-colors">
               Watch Demo
             </button>
           </div>
           
-          <div className="flex justify-center items-center space-x-8 text-sm text-gray-500">
-            <div className="flex items-center">
-              <Shield className="h-4 w-4 text-green-500 mr-1" />
-              <span>Secure & Reliable</span>
-            </div>
+          <div className="mt-6 flex items-center justify-center text-sm text-gray-500">
+            <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+            Secure & Reliable
           </div>
         </div>
-      </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+        {/* Features Section */}
+        <div className="mt-32">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
               Everything you need to manage your time
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-xl text-gray-600 mb-16">
               Powerful features designed to streamline your scheduling workflow
             </p>
           </div>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-8 rounded-2xl hover:shadow-lg transition-all transform hover:scale-105">
-              <div className="bg-blue-600 w-12 h-12 rounded-xl flex items-center justify-center mb-6">
-                <Calendar className="h-6 w-6 text-white" />
+            <div className="text-center">
+              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Calendar className="h-8 w-8 text-blue-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Smart Scheduling</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Intelligent scheduling that finds the perfect time slots based on everyone's availability and preferences.
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Smart Calendar</h3>
+              <p className="text-gray-600">
+                Intelligent scheduling that automatically finds the best meeting times for everyone involved.
               </p>
             </div>
-            
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-8 rounded-2xl hover:shadow-lg transition-all transform hover:scale-105">
-              <div className="bg-purple-600 w-12 h-12 rounded-xl flex items-center justify-center mb-6">
-                <Users className="h-6 w-6 text-white" />
+
+            <div className="text-center">
+              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="h-8 w-8 text-green-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Team Coordination</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Seamlessly coordinate with team members, check availability, and manage group meetings effortlessly.
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Team Collaboration</h3>
+              <p className="text-gray-600">
+                Seamlessly coordinate with team members and external stakeholders across time zones.
               </p>
             </div>
-            
-            <div className="bg-gradient-to-br from-green-50 to-green-100 p-8 rounded-2xl hover:shadow-lg transition-all transform hover:scale-105">
-              <div className="bg-green-600 w-12 h-12 rounded-xl flex items-center justify-center mb-6">
-                <BarChart3 className="h-6 w-6 text-white" />
+
+            <div className="text-center">
+              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Clock className="h-8 w-8 text-purple-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Analytics Dashboard</h3>
-              <p className="text-gray-600 leading-relaxed">
-                Track your productivity, meeting patterns, and time allocation with detailed insights and reports.
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Time Analytics</h3>
+              <p className="text-gray-600">
+                Track your productivity and get insights to optimize your schedule for maximum efficiency.
               </p>
             </div>
           </div>
         </div>
-      </section>
 
-      {/* Benefits Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">
-                Streamline your scheduling workflow
-              </h2>
-              <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                Stop playing calendar tetris. Focus on what matters most with intelligent 
-                scheduling tools designed for modern professionals.
-              </p>
-              
-              <div className="space-y-4">
-                <div className="flex items-center">
-                  <CheckCircle className="h-6 w-6 text-green-500 mr-3 flex-shrink-0" />
-                  <span className="text-gray-700">Automatic conflict detection and resolution</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="h-6 w-6 text-green-500 mr-3 flex-shrink-0" />
-                  <span className="text-gray-700">Smart meeting room booking</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="h-6 w-6 text-green-500 mr-3 flex-shrink-0" />
-                  <span className="text-gray-700">Timezone handling for global teams</span>
-                </div>
-                <div className="flex items-center">
-                  <CheckCircle className="h-6 w-6 text-green-500 mr-3 flex-shrink-0" />
-                  <span className="text-gray-700">Integration with popular calendar apps</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-2xl p-8 shadow-xl">
-              <div className="space-y-6">
-                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl">
-                  <div className="flex items-center">
-                    <Clock className="h-5 w-5 text-blue-600 mr-3" />
-                    <span className="font-medium text-gray-900">Time Management</span>
-                  </div>
-                  <span className="text-lg font-semibold text-blue-600">Optimized</span>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 bg-green-50 rounded-xl">
-                  <div className="flex items-center">
-                    <Users className="h-5 w-5 text-green-600 mr-3" />
-                    <span className="font-medium text-gray-900">Team Collaboration</span>
-                  </div>
-                  <span className="text-lg font-semibold text-green-600">Enhanced</span>
-                </div>
-                
-                <div className="flex items-center justify-between p-4 bg-purple-50 rounded-xl">
-                  <div className="flex items-center">
-                    <BarChart3 className="h-5 w-5 text-purple-600 mr-3" />
-                    <span className="font-medium text-gray-900">Productivity</span>
-                  </div>
-                  <span className="text-lg font-semibold text-purple-600">Improved</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600">
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-white mb-6">
-            Ready to transform your calendar?
+        {/* CTA Section */}
+        <div className="mt-32 bg-white rounded-2xl p-12 text-center shadow-xl">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            Ready to take control of your calendar?
           </h2>
-          <p className="text-xl text-blue-100 mb-10 leading-relaxed">
-            Experience the future of calendar management and scheduling efficiency.
+          <p className="text-xl text-gray-600 mb-8">
+            Join thousands of professionals who've transformed their scheduling workflow with Slotify.
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button onClick={handleSignup} className="bg-white text-blue-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-100 transition-all transform hover:scale-105 shadow-lg inline-flex items-center justify-center">
-              Start Your Free Trial
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </button>
-            <button className="border-2 border-white text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-white hover:text-blue-600 transition-all">
-              Schedule a Demo
-            </button>
-          </div>
-          
-          <p className="text-blue-100 text-sm mt-6">
-            No credit card required • 14-day free trial • Cancel anytime
-          </p>
+          <button
+            onClick={() => navigate('/signup')}
+            className="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 text-lg font-semibold inline-flex items-center transition-colors"
+          >
+            Get Started for Free
+            <ArrowRight className="ml-2 h-5 w-5" />
+          </button>
         </div>
-      </section>
+      </main>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <Calendar className="h-6 w-6 text-blue-400" />
-              <span className="text-lg font-bold">Slotify</span>
-            </div>
-            
-            <div className="flex space-x-6 text-sm text-gray-400">
-              <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-white transition-colors">Contact</a>
-            </div>
-          </div>
-          
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
-            <p>&copy; 2025 Slotify. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+      {/* Modals */}
+      {showPricingModal && <PricingModal />}
+      {showAboutModal && <AboutModal />}
     </div>
   );
 };
