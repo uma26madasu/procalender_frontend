@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Calendar, Users, BarChart3, Clock, CheckCircle, ArrowRight, Shield } from 'lucide-react';
 
 const HomePage = () => {
@@ -10,15 +11,15 @@ const HomePage = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <Calendar className="h-8 w-8 text-blue-600" />
-              <span className="text-xl font-bold text-gray-900">ProCalender</span>
+              <span className="text-xl font-bold text-gray-900">Slotify</span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
               <a href="#features" className="text-gray-600 hover:text-blue-600 transition-colors">Features</a>
               <a href="#pricing" className="text-gray-600 hover:text-blue-600 transition-colors">Pricing</a>
               <a href="#about" className="text-gray-600 hover:text-blue-600 transition-colors">About</a>
-              <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+              <Link to="/signup" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                 Get Started
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -35,15 +36,15 @@ const HomePage = () => {
           </h1>
           
           <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed">
-            Transform your calendar chaos into organized efficiency. ProCalender helps you manage meetings, 
+            Transform your calendar chaos into organized efficiency. Slotify helps you manage meetings, 
             track availability, and boost productivity with intelligent scheduling.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-            <button className="bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 transition-all transform hover:scale-105 shadow-lg hover:shadow-xl">
+            <Link to="/signup" className="bg-blue-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-blue-700 transition-all transform hover:scale-105 shadow-lg hover:shadow-xl inline-flex items-center">
               Start Free Trial
-              <ArrowRight className="inline-block ml-2 h-5 w-5" />
-            </button>
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
             <button className="border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl text-lg font-semibold hover:border-blue-600 hover:text-blue-600 transition-all">
               Watch Demo
             </button>
@@ -77,7 +78,7 @@ const HomePage = () => {
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-4">Smart Scheduling</h3>
               <p className="text-gray-600 leading-relaxed">
-                AI-powered scheduling that finds the perfect time slots based on everyone's availability and preferences.
+                Intelligent scheduling that finds the perfect time slots based on everyone's availability and preferences.
               </p>
             </div>
             
@@ -179,10 +180,10 @@ const HomePage = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-white text-blue-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-100 transition-all transform hover:scale-105 shadow-lg">
+            <Link to="/signup" className="bg-white text-blue-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-gray-100 transition-all transform hover:scale-105 shadow-lg inline-flex items-center justify-center">
               Start Your Free Trial
-              <ArrowRight className="inline-block ml-2 h-5 w-5" />
-            </button>
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
             <button className="border-2 border-white text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-white hover:text-blue-600 transition-all">
               Schedule a Demo
             </button>
@@ -200,7 +201,7 @@ const HomePage = () => {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-2 mb-4 md:mb-0">
               <Calendar className="h-6 w-6 text-blue-400" />
-              <span className="text-lg font-bold">ProCalender</span>
+              <span className="text-lg font-bold">Slotify</span>
             </div>
             
             <div className="flex space-x-6 text-sm text-gray-400">
@@ -211,7 +212,7 @@ const HomePage = () => {
           </div>
           
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
-            <p>&copy; 2025 ProCalender. All rights reserved.</p>
+            <p>&copy; 2025 Slotify. All rights reserved.</p>
           </div>
         </div>
       </footer>
