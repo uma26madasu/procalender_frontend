@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // Use your backend API URL
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://procalender-backend.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'https://procalender-backend.onrender.com';
 
 // Create axios instance with auth token
 const api = axios.create({

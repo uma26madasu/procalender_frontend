@@ -1,7 +1,5 @@
-// src/App.js
-
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from './firebase';
 
@@ -178,15 +176,13 @@ function App() {
   if (error) return <ErrorPage error={error} onRetry={() => window.location.reload()} />;
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<LandingPageContent user={user} />} />
-        <Route path="/features" element={<FeaturesPage />} />
-        <Route path="/auth" element={user ? <Navigate to="/dashboard" replace /> : <AuthForm />} />
-        <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/auth" replace />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+    <Routes>
+      <Route path="/" element={<LandingPageContent user={user} />} />
+      <Route path="/features" element={<FeaturesPage />} />
+      <Route path="/auth" element={user ? <Navigate to="/dashboard" replace /> : <AuthForm />} />
+      <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/auth" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }
 
