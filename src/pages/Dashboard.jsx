@@ -1,10 +1,18 @@
+// src/pages/Dashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Users, Plus, RefreshCw, Link, CheckCircle, XCircle } from 'lucide-react';
-import googleCalendarService from '../services/calendar/googleCalendar';
+import { useAuth } from '../contexts/AuthContext';
+import { useLocation } from 'react-router-dom';
+import axios from 'axios';
+
+// Use Vite environment variables
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://procalender-backend.onrender.com';
 
 const Dashboard = () => {
+  const { currentUser } = useAuth();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
-  const [isConnected, setIsConnected] = useState(false);
+  const [isCalendarConnected, setIsCalendarConnected] = useState(false);
   const [events, setEvents] = useState([]);
   const [stats, setStats] = useState({
     todayMeetings: 0,
@@ -12,69 +20,51 @@ const Dashboard = () => {
     totalSlots: 0
   });
   const [refreshing, setRefreshing] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
 
-  // Check for OAuth callback parameters
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const connected = urlParams.get('connected');
-    const email = urlParams.get('email');
-    const error = urlParams.get('error');
-
-    if (connected === 'true' && email) {
-      // Successfully connected
-      setIsConnected(true);
-      setUserEmail(decodeURIComponent(email));
-      
-      // Show success message
-      const successMessage = document.createElement('div');
-      successMessage.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-      successMessage.textContent = 'Google Calendar connected successfully!';
-      document.body.appendChild(successMessage);
-      
-      setTimeout(() => {
-        document.body.removeChild(successMessage);
-      }, 3000);
-
-      // Clean up URL
-      window.history.replaceState({}, document.title, window.location.pathname);
-      
-      // Load calendar data
-      loadCalendarData();
-    } else if (error) {
-      // Handle error
-      console.error('OAuth error:', error);
-      const errorMessage = document.createElement('div');
-      errorMessage.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-      errorMessage.textContent = 'Failed to connect Google Calendar. Please try again.';
-      document.body.appendChild(errorMessage);
-      
-      setTimeout(() => {
-        document.body.removeChild(errorMessage);
-      }, 5000);
-
-      // Clean up URL
-      window.history.replaceState({}, document.title, window.location.pathname);
+    // Show any messages from navigation state (from GoogleCallback)
+    if (location.state?.message) {
+      showNotification(location.state.message, location.state.type || 'info');
+      // Clear the state
+      window.history.replaceState({}, document.title);
     }
 
-    // Check existing connection status
-    checkConnectionStatus();
-  }, []);
+    checkCalendarConnection();
+  }, [currentUser, location]);
 
-  const checkConnectionStatus = async () => {
+  const showNotification = (message, type) => {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 ${
+      type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+    } text-white px-4 py-2 rounded-lg shadow-lg z-50`;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+      if (document.body.contains(notification)) {
+        document.body.removeChild(notification);
+      }
+    }, 5000);
+  };
+
+  const checkCalendarConnection = async () => {
+    if (!currentUser?.email) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Get user email from localStorage or your auth system
-      const storedEmail = localStorage.getItem('userEmail') || userEmail;
-      if (storedEmail) {
-        const status = await googleCalendarService.checkConnectionStatus(storedEmail);
-        setIsConnected(status.connected);
-        if (status.connected) {
-          setUserEmail(status.email);
-          await loadCalendarData();
-        }
+      const response = await axios.get(
+        `${API_BASE_URL}/api/auth/google/status?email=${encodeURIComponent(currentUser.email)}`
+      );
+      
+      setIsCalendarConnected(response.data.connected);
+      
+      if (response.data.connected) {
+        await loadCalendarData();
       }
     } catch (error) {
-      console.error('Error checking connection status:', error);
+      console.error('Error checking calendar connection:', error);
     } finally {
       setLoading(false);
     }
@@ -82,52 +72,74 @@ const Dashboard = () => {
 
   const loadCalendarData = async () => {
     try {
-      setLoading(true);
+      // Get the auth token from Firebase if available
+      const token = await currentUser?.getIdToken();
       
-      // Get today's events
-      const todayEvents = await googleCalendarService.getTodaysMeetings();
-      
-      // Get this week's events
-      const weekEvents = await googleCalendarService.getEvents({
-        startDate: new Date().toISOString(),
-        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      const response = await axios.get(`${API_BASE_URL}/api/google-calendar/events`, {
+        params: {
+          calendarId: 'primary',
+          timeMin: new Date().toISOString(),
+          timeMax: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          maxResults: 50
+        },
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
       });
 
-      setEvents(weekEvents);
-      setStats({
-        todayMeetings: todayEvents.length,
-        weekMeetings: weekEvents.length,
-        totalSlots: 50 // You can calculate this based on your availability windows
-      });
+      if (response.data.success) {
+        const calendarEvents = response.data.data || [];
+        setEvents(calendarEvents);
+        
+        // Calculate stats
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayEnd = new Date(today);
+        todayEnd.setHours(23, 59, 59, 999);
+        
+        const todayEvents = calendarEvents.filter(event => {
+          const eventStart = new Date(event.start?.dateTime || event.start?.date);
+          return eventStart >= today && eventStart <= todayEnd;
+        });
+
+        setStats({
+          todayMeetings: todayEvents.length,
+          weekMeetings: calendarEvents.length,
+          totalSlots: 50 // Calculate based on your availability
+        });
+      }
     } catch (error) {
       console.error('Error loading calendar data:', error);
-    } finally {
-      setLoading(false);
+      if (error.response?.status === 401) {
+        // Token might be expired, disconnect and ask to reconnect
+        setIsCalendarConnected(false);
+        showNotification('Calendar connection expired. Please reconnect.', 'error');
+      }
     }
   };
 
   const handleConnectCalendar = () => {
-    googleCalendarService.initializeGoogleAuth();
+    // Redirect to backend OAuth flow
+    window.location.href = `${API_BASE_URL}/api/auth/google/url`;
   };
 
   const handleDisconnectCalendar = async () => {
     try {
-      // You might need to get userId from your auth system
-      const userId = localStorage.getItem('userId');
-      if (userId) {
-        const success = await googleCalendarService.disconnect(userId);
-        if (success) {
-          setIsConnected(false);
-          setEvents([]);
-          setStats({
-            todayMeetings: 0,
-            weekMeetings: 0,
-            totalSlots: 0
-          });
-        }
-      }
+      await axios.post(`${API_BASE_URL}/api/auth/google/revoke`, {
+        userId: currentUser?.uid,
+        email: currentUser?.email
+      });
+      
+      setIsCalendarConnected(false);
+      setEvents([]);
+      setStats({
+        todayMeetings: 0,
+        weekMeetings: 0,
+        totalSlots: 0
+      });
+      
+      showNotification('Google Calendar disconnected', 'success');
     } catch (error) {
       console.error('Error disconnecting calendar:', error);
+      showNotification('Failed to disconnect calendar', 'error');
     }
   };
 
@@ -135,6 +147,7 @@ const Dashboard = () => {
     setRefreshing(true);
     await loadCalendarData();
     setRefreshing(false);
+    showNotification('Calendar refreshed', 'success');
   };
 
   const formatEventTime = (dateString) => {
@@ -179,19 +192,19 @@ const Dashboard = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-2 text-gray-600">Manage your meetings and availability</p>
+          <p className="mt-2 text-gray-600">Welcome back, {currentUser?.displayName || currentUser?.email}</p>
         </div>
 
-        {/* Connection Status */}
+        {/* Calendar Connection Status */}
         <div className="mb-6 bg-white rounded-lg shadow p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <Calendar className="h-5 w-5 text-gray-500 mr-2" />
               <span className="text-gray-700 font-medium">Google Calendar</span>
-              {isConnected ? (
+              {isCalendarConnected ? (
                 <span className="ml-3 flex items-center text-green-600">
                   <CheckCircle className="h-4 w-4 mr-1" />
-                  Connected ({userEmail})
+                  Connected
                 </span>
               ) : (
                 <span className="ml-3 flex items-center text-gray-500">
@@ -200,7 +213,7 @@ const Dashboard = () => {
                 </span>
               )}
             </div>
-            {isConnected ? (
+            {isCalendarConnected ? (
               <button
                 onClick={handleDisconnectCalendar}
                 className="text-red-600 hover:text-red-700 text-sm font-medium"
@@ -257,9 +270,9 @@ const Dashboard = () => {
           <div className="flex gap-3">
             <button
               onClick={handleRefresh}
-              disabled={!isConnected || refreshing}
+              disabled={!isCalendarConnected || refreshing}
               className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
-                isConnected 
+                isCalendarConnected 
                   ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' 
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
               }`}
@@ -269,16 +282,17 @@ const Dashboard = () => {
             </button>
             <button
               className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              onClick={() => window.location.href = '/create-link'}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Schedule Meeting
+              Create Booking Link
             </button>
           </div>
         </div>
 
         {/* Calendar Events */}
         <div className="bg-white rounded-lg shadow">
-          {!isConnected ? (
+          {!isCalendarConnected ? (
             <div className="p-8 text-center">
               <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Connect Your Calendar</h3>
@@ -309,12 +323,12 @@ const Dashboard = () => {
                       </h3>
                       <div className="mt-1 flex items-center text-sm text-gray-500">
                         <Calendar className="h-4 w-4 mr-1" />
-                        <span>{formatEventDate(event.start.dateTime || event.start.date)}</span>
+                        <span>{formatEventDate(event.start?.dateTime || event.start?.date)}</span>
                         <span className="mx-2">•</span>
                         <Clock className="h-4 w-4 mr-1" />
                         <span>
-                          {formatEventTime(event.start.dateTime || event.start.date)} - 
-                          {formatEventTime(event.end.dateTime || event.end.date)}
+                          {formatEventTime(event.start?.dateTime || event.start?.date)} - 
+                          {formatEventTime(event.end?.dateTime || event.end?.date)}
                         </span>
                       </div>
                       {event.attendees && event.attendees.length > 0 && (

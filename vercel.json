@@ -2,6 +2,21 @@
   "version": 2,
   "buildCommand": "node vercel-build.js",
   "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin-allow-popups"
+        },
+        {
+          "key": "Cross-Origin-Embedder-Policy",
+          "value": "credentialless"
+        }
+      ]
+    }
+  ],
   "routes": [
     {
       "handle": "filesystem"
@@ -19,7 +34,15 @@
     },
     {
       "src": "/api/(.*)",
-      "dest": "https://slotify-backend.onrender.com/$1"
+      "dest": "https://procalender-backend.onrender.com/api/$1"
+    },
+    {
+      "src": "/google/callback",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/dashboard",
+      "dest": "/index.html"
     },
     {
       "src": "/(.*)",
@@ -27,7 +50,7 @@
     }
   ],
   "env": {
-    "VITE_API_URL": "https://slotify-backend.onrender.com",
+    "VITE_API_URL": "https://procalender-backend.onrender.com",
     "VITE_FIREBASE_API_KEY": "AIzaSyCYsr6oZ3j-R7nJe6xWaRO6Q5xi0Rk3IV8",
     "VITE_FIREBASE_AUTH_DOMAIN": "procalenderfrontend.firebaseapp.com",
     "VITE_FIREBASE_PROJECT_ID": "procalenderfrontend",

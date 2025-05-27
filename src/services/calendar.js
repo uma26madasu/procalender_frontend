@@ -1,162 +1,185 @@
-import { axiosWithAuth } from '../utils/axios';
+// src/services/calendar/calendar.js
+import axios from 'axios';
+import { auth } from '../../firebase';
 
-export const calendarService = {
-  // Fetch user's calendars
-  getCalendars: async () => {
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://procalender-backend.onrender.com';
+
+class CalendarService {
+  constructor() {
+    this.api = axios.create({
+      baseURL: API_BASE_URL,
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    // Add Firebase auth token to requests
+    this.api.interceptors.request.use(async (config) => {
+      try {
+        const user = auth.currentUser;
+        if (user) {
+          const token = await user.getIdToken();
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch (error) {
+        console.error('Error getting auth token:', error);
+      }
+      return config;
+    });
+  }
+
+  // Initialize Google Calendar OAuth flow (redirects to backend)
+  async initializeGoogleAuth() {
     try {
-      const response = await axiosWithAuth.get('https://www.googleapis.com/calendar/v3/users/me/calendarList');
-      return response.data.items;
+      const response = await this.api.get('/api/auth/google/url');
+      if (response.data.success && response.data.url) {
+        window.location.href = response.data.url;
+      } else {
+        throw new Error('Failed to get OAuth URL');
+      }
     } catch (error) {
-      console.error('Error fetching calendars:', error);
+      console.error('Error initializing Google auth:', error);
       throw error;
     }
-  },
+  }
 
-  // Fetch events from a specific calendar
-  getEvents: async (calendarId, timeMin, timeMax) => {
+  // Check if Google Calendar is connected
+  async checkConnectionStatus(email) {
     try {
-      const response = await axiosWithAuth.get(
-        `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`,
-        {
-          params: {
-            timeMin: timeMin.toISOString(),
-            timeMax: timeMax.toISOString(),
-            singleEvents: true,
-            orderBy: 'startTime'
-          }
-        }
-      );
-      return response.data.items;
+      const response = await this.api.get(`/api/auth/google/status?email=${encodeURIComponent(email)}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error checking connection status:', error);
+      return { connected: false };
+    }
+  }
+
+  // Get calendar events
+  async getEvents(params = {}) {
+    try {
+      const queryParams = new URLSearchParams({
+        calendarId: params.calendarId || 'primary',
+        timeMin: params.startDate || new Date().toISOString(),
+        timeMax: params.endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        maxResults: params.limit || 50,
+        singleEvents: true,
+        orderBy: 'startTime'
+      });
+
+      const response = await this.api.get(`/api/google-calendar/events?${queryParams}`);
+      return response.data.success ? response.data.data : [];
     } catch (error) {
       console.error('Error fetching events:', error);
-      throw error;
+      return [];
     }
-  },
+  }
+
+  // Get today's meetings
+  async getTodaysMeetings() {
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
+
+    return this.getEvents({
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    });
+  }
+
+  // Get this week's meetings
+  async getWeekMeetings() {
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + 7);
+
+    return this.getEvents({
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    });
+  }
 
   // Create a new event
-  createEvent: async (calendarId, eventData) => {
+  async createEvent(event) {
     try {
-      const response = await axiosWithAuth.post(
-        `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`,
-        eventData
-      );
-      return response.data;
+      const response = await this.api.post('/api/google-calendar/events', {
+        calendarId: 'primary',
+        event
+      });
+      return response.data.success ? response.data.data : null;
     } catch (error) {
       console.error('Error creating event:', error);
       throw error;
     }
-  },
+  }
 
-  // Create a tentative event
-  createTentativeEvent: async (calendarId, eventData) => {
+  // Update an event
+  async updateEvent(eventId, updates) {
     try {
-      // Add tentative status to event
-      const tentativeEvent = {
-        ...eventData,
-        status: 'tentative',
-        colorId: '5', // Light yellow color for tentative events
-        transparency: 'transparent', // Don't block time until approved
-        description: (eventData.description || '') + '\n\n[Status: Tentative - Pending Approval]'
-      };
-      
-      const response = await axiosWithAuth.post(
-        `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`,
-        tentativeEvent
-      );
-      
-      return response.data;
-    } catch (error) {
-      console.error('Error creating tentative event:', error);
-      throw error;
-    }
-  },
-
-  // Confirm a tentative event
-  confirmEvent: async (calendarId, eventId) => {
-    try {
-      const response = await axiosWithAuth.patch(
-        `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`,
-        {
-          status: 'confirmed',
-          colorId: '2', // Green color for confirmed events
-          transparency: 'opaque', // Block time once approved
-          description: (event.description || '').replace('[Status: Tentative - Pending Approval]', '[Status: Confirmed]')
-        }
-      );
-      
-      return response.data;
-    } catch (error) {
-      console.error('Error confirming event:', error);
-      throw error;
-    }
-  },
-
-  // Reject a tentative event (delete it)
-  rejectEvent: async (calendarId, eventId, reason = '') => {
-    try {
-      // First get the event to notify the attendee
-      const event = await axiosWithAuth.get(
-        `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`
-      );
-      
-      // Then delete the event
-      await axiosWithAuth.delete(
-        `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`
-      );
-      
-      // Return the deleted event data for notification purposes
-      return {
-        ...event.data,
-        rejectionReason: reason
-      };
-    } catch (error) {
-      console.error('Error rejecting event:', error);
-      throw error;
-    }
-  },
-
-  // Find free time slots
-  findFreeBusy: async (calendars, timeMin, timeMax) => {
-    try {
-      const response = await axiosWithAuth.post(
-        'https://www.googleapis.com/calendar/v3/freeBusy',
-        {
-          timeMin: timeMin.toISOString(),
-          timeMax: timeMax.toISOString(),
-          items: calendars.map(calendar => ({ id: calendar.id }))
-        }
-      );
-      return response.data.calendars;
-    } catch (error) {
-      console.error('Error checking free/busy:', error);
-      throw error;
-    }
-  },
-
-  // Update an existing event
-  updateEvent: async (calendarId, eventId, updates) => {
-    try {
-      const response = await axiosWithAuth.patch(
-        `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`,
-        updates
-      );
-      return response.data;
+      const response = await this.api.put(`/api/google-calendar/events/${eventId}`, {
+        calendarId: 'primary',
+        event: updates
+      });
+      return response.data.success ? response.data.data : null;
     } catch (error) {
       console.error('Error updating event:', error);
       throw error;
     }
-  },
+  }
 
   // Delete an event
-  deleteEvent: async (calendarId, eventId) => {
+  async deleteEvent(eventId) {
     try {
-      await axiosWithAuth.delete(
-        `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events/${eventId}`
-      );
-      return true;
+      const response = await this.api.delete(`/api/google-calendar/events/${eventId}?calendarId=primary`);
+      return response.data.success;
     } catch (error) {
       console.error('Error deleting event:', error);
-      throw error;
+      return false;
     }
   }
-};
+
+  // Check for conflicts
+  async checkConflicts(startTime, endTime) {
+    try {
+      const response = await this.api.post('/api/google-calendar/check-conflicts', {
+        startTime,
+        endTime,
+        calendarIds: ['primary']
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error checking conflicts:', error);
+      return { hasConflicts: false, conflicts: [] };
+    }
+  }
+
+  // Disconnect Google Calendar
+  async disconnect(email) {
+    try {
+      const response = await this.api.post('/api/auth/google/revoke', { 
+        email,
+        userId: auth.currentUser?.uid
+      });
+      return response.data.success;
+    } catch (error) {
+      console.error('Error disconnecting Google Calendar:', error);
+      return false;
+    }
+  }
+
+  // Get available time slots
+  async getAvailableSlots(linkId, startDate, endDate) {
+    try {
+      const response = await this.api.get(`/api/bookings/available-slots/${linkId}`, {
+        params: { startDate, endDate }
+      });
+      return response.data.success ? response.data.data : [];
+    } catch (error) {
+      console.error('Error getting available slots:', error);
+      return [];
+    }
+  }
+}
+
+export default new CalendarService();

@@ -1,60 +1,37 @@
-import { auth } from "./config";
-import { 
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  GoogleAuthProvider,
-  signInWithPopup
-} from "firebase/auth";
-import { useAuthState } from "react-firebase-hooks/auth";
+// src/config/firebase.js
+import { initializeApp } from 'firebase/app';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
-// Initialize Google provider once
-const googleProvider = new GoogleAuthProvider();
-
-// Authentication functions
-export const signUp = async (email, password) => {
-  try {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    return userCredential.user;
-  } catch (error) {
-    throw new Error(error.message);
-  }
+// Your Firebase config from environment variables
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
-export const signIn = async (email, password) => {
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return userCredential.user;
-  } catch (error) {
-    throw new Error(error.message);
-  }
-};
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
-export const logOut = async () => {
-  try {
-    await signOut(auth);
-    localStorage.clear();
-    window.location.href = '/';
-  } catch (error) {
-    console.error('Error signing out:', error);
-    throw new Error(error.message);
-  }
-};
+// Initialize Firebase Auth
+export const auth = getAuth(app);
 
-export const signInWithGoogle = async () => {
-  try {
-    const result = await signInWithPopup(auth, googleProvider);
-    return result.user;
-  } catch (error) {
-    throw new Error(error.message);
-  }
-};
+// Initialize Firestore
+export const db = getFirestore(app);
 
-// Auth state hook
-export const useAuth = () => {
-  const [user, loading, error] = useAuthState(auth);
-  return { user, loading, error };
-};
+// Configure Google Auth Provider with Calendar scope
+export const googleProvider = new GoogleAuthProvider();
 
-// Export auth instance for direct use when needed
-export { auth };
+// Add Google Calendar scope
+googleProvider.addScope('https://www.googleapis.com/auth/calendar');
+googleProvider.addScope('https://www.googleapis.com/auth/calendar.events');
+
+// Optional: Force account selection
+googleProvider.setCustomParameters({
+  prompt: 'select_account'
+});
+
+export default app;
