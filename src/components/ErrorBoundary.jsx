@@ -1,4 +1,3 @@
-// src/components/ErrorBoundary.jsx
 import React from 'react';
 
 class ErrorBoundary extends React.Component {
@@ -6,42 +5,111 @@ class ErrorBoundary extends React.Component {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
   }
-  
+
   static getDerivedStateFromError(error) {
+    // Update state so the next render will show the fallback UI
     return { hasError: true };
   }
-  
+
   componentDidCatch(error, errorInfo) {
+    // Log the error for debugging
+    console.error('❌ ErrorBoundary caught an error:', error);
+    console.error('Error Info:', errorInfo);
+    
     this.setState({
       error: error,
       errorInfo: errorInfo
     });
-    console.error("Error caught by boundary:", error, errorInfo);
   }
-  
+
   render() {
     if (this.state.hasError) {
+      // Use custom fallback UI if provided, otherwise use default
+      const FallbackComponent = this.props.fallback;
+      
+      if (FallbackComponent) {
+        return (
+          <FallbackComponent 
+            error={this.state.error}
+            errorInfo={this.state.errorInfo}
+            retry={() => this.setState({ hasError: false, error: null, errorInfo: null })}
+          />
+        );
+      }
+
+      // Default error UI
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-8">
-          <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
-            <h1 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h1>
-            <p className="text-gray-700 mb-4">The application encountered an error.</p>
-            
-            <div className="bg-gray-100 p-4 rounded-md mb-4 overflow-auto">
-              <p className="font-medium text-red-500">{this.state.error && this.state.error.toString()}</p>
-            </div>
-            
-            <button
-              onClick={() => window.location.reload()}
-              className="w-full py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              Refresh Page
-            </button>
-          </div>
+        <div style={{ 
+          padding: '20px', 
+          textAlign: 'center',
+          fontFamily: 'Arial, sans-serif',
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <h1 style={{ color: '#dc3545' }}>🚨 Something went wrong</h1>
+          <p style={{ maxWidth: '600px', margin: '20px 0' }}>
+            ProCalendar encountered an unexpected error. This is usually temporary.
+          </p>
+          
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              marginBottom: '20px'
+            }}
+          >
+            🔄 Reload Application
+          </button>
+
+          {process.env.NODE_ENV === 'development' && (
+            <details style={{ maxWidth: '800px', width: '100%' }}>
+              <summary style={{ cursor: 'pointer', marginBottom: '10px' }}>
+                🔍 Debug Information (Development Only)
+              </summary>
+              <div style={{ 
+                background: '#f8f9fa', 
+                padding: '15px', 
+                borderRadius: '5px',
+                textAlign: 'left',
+                fontSize: '14px'
+              }}>
+                <strong>Error:</strong>
+                <pre style={{ 
+                  background: '#ffffff', 
+                  padding: '10px', 
+                  borderRadius: '3px',
+                  overflow: 'auto',
+                  margin: '5px 0'
+                }}>
+                  {this.state.error && this.state.error.toString()}
+                </pre>
+                
+                <strong>Component Stack:</strong>
+                <pre style={{ 
+                  background: '#ffffff', 
+                  padding: '10px', 
+                  borderRadius: '3px',
+                  overflow: 'auto',
+                  margin: '5px 0'
+                }}>
+                  {this.state.errorInfo.componentStack}
+                </pre>
+              </div>
+            </details>
+          )}
         </div>
       );
     }
-    
+
     return this.props.children;
   }
 }

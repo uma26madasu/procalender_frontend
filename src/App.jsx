@@ -1,87 +1,80 @@
-// src/utils/App.jsx
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { CalendarProvider } from '@/contexts/CalendarContext';
-import ProtectedRoute from '@/components/ProtectedRoute';
-
-// Pages
-import LoginPage from '@/pages/LoginPage';
-import SignupPage from '@/pages/SignupPage';
-import Dashboard from '@/pages/Dashboard';
-import BookingLinks from '@/pages/BookingLinks';
-import CreateLink from '@/pages/CreateLink';
-import CreateWindow from '@/pages/CreateWindow';
-import PublicScheduler from '@/pages/PublicScheduler';
-import GoogleCallback from '@/pages/GoogleCallback';
-import HomePage from '@/pages/HomePage';
-
-// Layout
-import MainLayout from '@/components/layout/MainLayout';
+import React, { useState, useEffect } from 'react';
 
 function App() {
+  const [status, setStatus] = useState('🔄 Loading...');
+
+  useEffect(() => {
+    // Simple initialization test
+    try {
+      setStatus('✅ ProCalendar Loaded Successfully!');
+    } catch (error) {
+      setStatus(`❌ Error: ${error.message}`);
+    }
+  }, []);
+
   return (
-    <Router>
-      <AuthProvider>
-        <CalendarProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/book/:linkId" element={<PublicScheduler />} />
-            
-            {/* OAuth callback route */}
-            <Route path="/google/callback" element={<GoogleCallback />} />
-            
-            {/* Protected routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <Dashboard />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/booking-links"
-              element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <BookingLinks />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/create-link"
-              element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <CreateLink />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/create-window"
-              element={
-                <ProtectedRoute>
-                  <MainLayout>
-                    <CreateWindow />
-                  </MainLayout>
-                </ProtectedRoute>
-              }
-            />
-            
-            {/* Redirect any unknown routes to dashboard */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </CalendarProvider>
-      </AuthProvider>
-    </Router>
+    <div style={{ 
+      padding: '40px', 
+      textAlign: 'center',
+      fontFamily: 'Arial, sans-serif',
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      color: 'white'
+    }}>
+      <h1 style={{ fontSize: '3em', margin: '0' }}>📅 ProCalendar</h1>
+      <p style={{ fontSize: '1.5em', margin: '20px 0' }}>{status}</p>
+      
+      <div style={{ 
+        background: 'rgba(255,255,255,0.1)', 
+        padding: '20px', 
+        borderRadius: '10px',
+        marginTop: '30px'
+      }}>
+        <h3>🎯 Environment Check:</h3>
+        <p>API URL: {import.meta.env.VITE_API_URL ? '✅' : '❌'}</p>
+        <p>Firebase Key: {import.meta.env.VITE_FIREBASE_API_KEY ? '✅' : '❌'}</p>
+        <p>Firebase Domain: {import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ? '✅' : '❌'}</p>
+        <p>Google Client ID: {import.meta.env.VITE_GOOGLE_CLIENT_ID ? '✅' : '❌'}</p>
+      </div>
+
+      <div style={{ marginTop: '30px' }}>
+        <button 
+          onClick={() => window.location.reload()}
+          style={{
+            padding: '15px 30px',
+            fontSize: '18px',
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            margin: '0 10px'
+          }}
+        >
+          🔄 Refresh
+        </button>
+        
+        <button 
+          onClick={() => window.open('https://github.com/uma26madasu/procalender_frontend', '_blank')}
+          style={{
+            padding: '15px 30px',
+            fontSize: '18px',
+            backgroundColor: '#6c757d',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            margin: '0 10px'
+          }}
+        >
+          📁 View Code
+        </button>
+      </div>
+    </div>
   );
 }
 
