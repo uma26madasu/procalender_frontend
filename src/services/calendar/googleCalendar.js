@@ -26,7 +26,6 @@ api.interceptors.request.use(async (config) => {
   return Promise.reject(error);
 });
 
-
 class GoogleCalendarService {
   async initializeGoogleAuth() {
     try {
@@ -54,8 +53,22 @@ class GoogleCalendarService {
     }
   }
 
-  // ... (rest of the methods like getEvents, disconnect, createEvent, updateEvent, deleteEvent, checkConflicts as I provided previously)
-
+  // ... (rest of your methods)
 }
+
+// ADD THIS EXPORT FUNCTION - This is what CreateWindow.jsx is looking for
+export const getGoogleAuthUrl = async () => {
+  try {
+    const response = await api.get('/api/auth/google/url');
+    if (response.data.success && response.data.url) {
+      return response.data.url;
+    } else {
+      throw new Error('Failed to get Google OAuth URL from backend.');
+    }
+  } catch (error) {
+    console.error('Error getting Google auth URL:', error);
+    throw error;
+  }
+};
 
 export default new GoogleCalendarService();
