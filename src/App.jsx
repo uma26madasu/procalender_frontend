@@ -1,257 +1,295 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import ErrorBoundary from './components/ErrorBoundary';
-
-// Simple Loading Component
-const LoadingSpinner = () => (
-  <div style={{ 
-    display: 'flex', 
-    justifyContent: 'center', 
-    alignItems: 'center', 
-    height: '100vh',
-    fontSize: '18px'
-  }}>
-    🔄 Loading ProCalendar...
-  </div>
-);
-
-// Simple Dashboard Component (inline until you create pages)
-const Dashboard = () => (
-  <div style={{ padding: '20px' }}>
-    <h1>📅 ProCalendar Dashboard</h1>
-    <p>Welcome to your calendar management system!</p>
-    <div style={{ marginTop: '20px' }}>
-      <Link to="/calendar" style={{ 
-        padding: '10px 20px', 
-        backgroundColor: '#007bff', 
-        color: 'white', 
-        textDecoration: 'none', 
-        borderRadius: '5px',
-        marginRight: '10px'
-      }}>
-        📅 View Calendar
-      </Link>
-      <Link to="/login" style={{ 
-        padding: '10px 20px', 
-        backgroundColor: '#28a745', 
-        color: 'white', 
-        textDecoration: 'none', 
-        borderRadius: '5px'
-      }}>
-        🔑 Login
-      </Link>
-    </div>
-  </div>
-);
-
-// Simple Login Component (inline until you create pages)
-const Login = () => (
-  <div style={{ padding: '20px', textAlign: 'center' }}>
-    <h1>🔑 Login to ProCalendar</h1>
-    <div style={{ 
-      maxWidth: '400px', 
-      margin: '0 auto',
-      padding: '20px',
-      border: '1px solid #ddd',
-      borderRadius: '8px'
-    }}>
-      <button style={{
-        width: '100%',
-        padding: '12px',
-        backgroundColor: '#4285f4',
-        color: 'white',
-        border: 'none',
-        borderRadius: '5px',
-        fontSize: '16px',
-        cursor: 'pointer',
-        marginBottom: '10px'
-      }}>
-        🔐 Login with Google
-      </button>
-      <button style={{
-        width: '100%',
-        padding: '12px',
-        backgroundColor: '#333',
-        color: 'white',
-        border: 'none',
-        borderRadius: '5px',
-        fontSize: '16px',
-        cursor: 'pointer'
-      }}>
-        🐙 Login with GitHub
-      </button>
-    </div>
-    <div style={{ marginTop: '20px' }}>
-      <Link to="/" style={{ color: '#007bff' }}>← Back to Dashboard</Link>
-    </div>
-  </div>
-);
-
-// Simple Calendar Component (inline until you create pages)
-const Calendar = () => (
-  <div style={{ padding: '20px' }}>
-    <h1>📅 ProCalendar View</h1>
-    <div style={{ 
-      display: 'grid', 
-      gridTemplateColumns: 'repeat(7, 1fr)', 
-      gap: '10px',
-      marginTop: '20px'
-    }}>
-      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-        <div key={day} style={{ 
-          padding: '10px', 
-          backgroundColor: '#f8f9fa', 
-          textAlign: 'center',
-          fontWeight: 'bold'
-        }}>
-          {day}
-        </div>
-      ))}
-      {Array.from({length: 35}, (_, i) => (
-        <div key={i} style={{ 
-          padding: '20px', 
-          border: '1px solid #dee2e6',
-          textAlign: 'center',
-          minHeight: '60px'
-        }}>
-          {i + 1 <= 31 ? i + 1 : ''}
-        </div>
-      ))}
-    </div>
-    <div style={{ marginTop: '20px' }}>
-      <Link to="/" style={{ color: '#007bff' }}>← Back to Dashboard</Link>
-    </div>
-  </div>
-);
-
-// Simple Error Fallback
-const ErrorFallback = ({ error }) => (
-  <div style={{ 
-    padding: '20px', 
-    textAlign: 'center',
-    fontFamily: 'Arial, sans-serif'
-  }}>
-    <h1>❌ Oops! Something went wrong</h1>
-    <p>ProCalendar encountered an error. Please try refreshing the page.</p>
-    <button 
-      onClick={() => window.location.reload()} 
-      style={{
-        padding: '10px 20px',
-        backgroundColor: '#007bff',
-        color: 'white',
-        border: 'none',
-        borderRadius: '5px',
-        cursor: 'pointer',
-        fontSize: '16px'
-      }}
-    >
-      🔄 Refresh Page
-    </button>
-  </div>
-);
+import React, { useState } from 'react';
 
 function App() {
-  const [initError, setInitError] = useState(null);
-  const [isReady, setIsReady] = useState(false);
+  const [currentPage, setCurrentPage] = useState('dashboard');
 
-  useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        // Test environment variables
-        const requiredEnvVars = [
-          'VITE_FIREBASE_API_KEY',
-          'VITE_FIREBASE_AUTH_DOMAIN', 
-          'VITE_FIREBASE_PROJECT_ID'
-        ];
-
-        const missingVars = requiredEnvVars.filter(
-          varName => !import.meta.env[varName]
+  // Simple page navigation
+  const renderPage = () => {
+    switch(currentPage) {
+      case 'login':
+        return (
+          <div style={{ padding: '40px', textAlign: 'center' }}>
+            <h1>🔑 Login to ProCalendar</h1>
+            <div style={{ 
+              maxWidth: '400px', 
+              margin: '20px auto',
+              padding: '30px',
+              backgroundColor: 'white',
+              borderRadius: '10px',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+            }}>
+              <button 
+                style={{
+                  width: '100%',
+                  padding: '15px',
+                  backgroundColor: '#4285f4',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  marginBottom: '15px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                onClick={() => alert('Google login would go here!')}
+              >
+                🔐 Continue with Google
+              </button>
+              <button 
+                style={{
+                  width: '100%',
+                  padding: '15px',
+                  backgroundColor: '#333',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+                onClick={() => alert('GitHub login would go here!')}
+              >
+                🐙 Continue with GitHub
+              </button>
+            </div>
+          </div>
         );
+      
+      case 'calendar':
+        return (
+          <div style={{ padding: '40px' }}>
+            <h1>📅 Calendar View</h1>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(7, 1fr)', 
+              gap: '2px',
+              marginTop: '30px',
+              backgroundColor: '#f8f9fa',
+              padding: '20px',
+              borderRadius: '10px'
+            }}>
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                <div key={day} style={{ 
+                  padding: '15px', 
+                  backgroundColor: '#007bff', 
+                  color: 'white',
+                  textAlign: 'center',
+                  fontWeight: 'bold',
+                  borderRadius: '5px'
+                }}>
+                  {day}
+                </div>
+              ))}
+              {Array.from({length: 35}, (_, i) => (
+                <div key={i} style={{ 
+                  padding: '20px', 
+                  backgroundColor: 'white',
+                  textAlign: 'center',
+                  minHeight: '80px',
+                  borderRadius: '5px',
+                  border: '1px solid #dee2e6',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  color: i + 1 <= 31 ? '#333' : '#ccc'
+                }}>
+                  {i + 1 <= 31 ? i + 1 : ''}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      
+      default: // dashboard
+        return (
+          <div style={{ padding: '40px' }}>
+            <h1 style={{ fontSize: '2.5em', marginBottom: '20px' }}>
+              📅 ProCalendar Dashboard
+            </h1>
+            <p style={{ fontSize: '1.2em', marginBottom: '40px', color: '#666' }}>
+              Welcome to your professional calendar management system!
+            </p>
+            
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+              gap: '20px',
+              marginTop: '30px'
+            }}>
+              <div style={{
+                padding: '30px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                borderRadius: '10px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'transform 0.2s'
+              }}
+              onClick={() => setCurrentPage('calendar')}
+              onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
+              onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+              >
+                <h3 style={{ margin: '0 0 15px 0', fontSize: '1.5em' }}>📅 Calendar</h3>
+                <p style={{ margin: 0 }}>View and manage your schedule</p>
+              </div>
+              
+              <div style={{
+                padding: '30px',
+                backgroundColor: '#28a745',
+                color: 'white',
+                borderRadius: '10px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'transform 0.2s'
+              }}
+              onClick={() => setCurrentPage('login')}
+              onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
+              onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+              >
+                <h3 style={{ margin: '0 0 15px 0', fontSize: '1.5em' }}>🔑 Account</h3>
+                <p style={{ margin: 0 }}>Login or manage your account</p>
+              </div>
+              
+              <div style={{
+                padding: '30px',
+                backgroundColor: '#17a2b8',
+                color: 'white',
+                borderRadius: '10px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'transform 0.2s'
+              }}
+              onClick={() => alert('Settings coming soon!')}
+              onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
+              onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+              >
+                <h3 style={{ margin: '0 0 15px 0', fontSize: '1.5em' }}>⚙️ Settings</h3>
+                <p style={{ margin: 0 }}>Configure your preferences</p>
+              </div>
+            </div>
 
-        if (missingVars.length > 0) {
-          console.warn(`Missing environment variables: ${missingVars.join(', ')}`);
-          // Don't fail for missing env vars, just warn
-        }
-
-        // Try to initialize Firebase (if config exists)
-        try {
-          // Only import firebase if the file exists
-          const firebaseModule = await import('./firebase/config').catch(() => null);
-          if (firebaseModule) {
-            console.log('✅ Firebase initialized successfully');
-          } else {
-            console.log('⚠️ Firebase config not found - using mock mode');
-          }
-        } catch (firebaseError) {
-          console.warn('⚠️ Firebase initialization warning:', firebaseError);
-          // Don't fail the entire app for Firebase issues
-        }
-
-        setIsReady(true);
-      } catch (error) {
-        console.error('❌ App initialization failed:', error);
-        setInitError(error);
-      }
-    };
-
-    initializeApp();
-  }, []);
-
-  if (initError) {
-    return <ErrorFallback error={initError} />;
-  }
-
-  if (!isReady) {
-    return <LoadingSpinner />;
-  }
+            <div style={{ 
+              marginTop: '40px',
+              padding: '20px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '10px',
+              border: '1px solid #dee2e6'
+            }}>
+              <h3>🎯 Environment Status:</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                <div>API URL: {import.meta.env.VITE_API_URL ? '✅ Connected' : '❌ Missing'}</div>
+                <div>Firebase: {import.meta.env.VITE_FIREBASE_API_KEY ? '✅ Configured' : '❌ Missing'}</div>
+                <div>Google OAuth: {import.meta.env.VITE_GOOGLE_CLIENT_ID ? '✅ Ready' : '❌ Missing'}</div>
+                <div>Build: ✅ {new Date().toLocaleDateString()}</div>
+              </div>
+            </div>
+          </div>
+        );
+    }
+  };
 
   return (
-    <ErrorBoundary fallback={ErrorFallback}>
-      <Router>
-        <div className="App" style={{ 
-          minHeight: '100vh',
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: '#333'
-        }}>
-          <nav style={{ 
-            background: 'rgba(255,255,255,0.1)', 
-            padding: '10px 20px',
-            backdropFilter: 'blur(10px)'
-          }}>
-            <Link to="/" style={{ 
+    <div style={{ 
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    }}>
+      {/* Navigation Header */}
+      <nav style={{ 
+        background: 'rgba(255,255,255,0.1)', 
+        padding: '15px 30px',
+        backdropFilter: 'blur(10px)',
+        borderBottom: '1px solid rgba(255,255,255,0.2)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <button 
+            onClick={() => setCurrentPage('dashboard')}
+            style={{ 
+              background: 'none',
+              border: 'none',
               color: 'white', 
-              textDecoration: 'none', 
               fontSize: '24px',
-              fontWeight: 'bold'
-            }}>
-              📅 ProCalendar
-            </Link>
-          </nav>
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            📅 ProCalendar
+          </button>
           
-          <div style={{ 
-            background: 'white', 
-            margin: '20px', 
-            borderRadius: '10px',
-            minHeight: 'calc(100vh - 80px)',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-          }}>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/calendar" element={<Calendar />} />
-              <Route path="*" element={
-                <div style={{ padding: '20px', textAlign: 'center' }}>
-                  <h1>404 - Page Not Found</h1>
-                  <p>The page you're looking for doesn't exist.</p>
-                  <Link to="/" style={{ color: '#007bff' }}>← Go Home</Link>
-                </div>
-              } />
-            </Routes>
+          <div>
+            <button 
+              onClick={() => setCurrentPage('dashboard')}
+              style={{
+                background: currentPage === 'dashboard' ? 'rgba(255,255,255,0.2)' : 'none',
+                border: '1px solid rgba(255,255,255,0.3)',
+                color: 'white',
+                padding: '8px 16px',
+                margin: '0 5px',
+                borderRadius: '20px',
+                cursor: 'pointer'
+              }}
+            >
+              🏠 Dashboard
+            </button>
+            <button 
+              onClick={() => setCurrentPage('calendar')}
+              style={{
+                background: currentPage === 'calendar' ? 'rgba(255,255,255,0.2)' : 'none',
+                border: '1px solid rgba(255,255,255,0.3)',
+                color: 'white',
+                padding: '8px 16px',
+                margin: '0 5px',
+                borderRadius: '20px',
+                cursor: 'pointer'
+              }}
+            >
+              📅 Calendar
+            </button>
+            <button 
+              onClick={() => setCurrentPage('login')}
+              style={{
+                background: currentPage === 'login' ? 'rgba(255,255,255,0.2)' : 'none',
+                border: '1px solid rgba(255,255,255,0.3)',
+                color: 'white',
+                padding: '8px 16px',
+                margin: '0 5px',
+                borderRadius: '20px',
+                cursor: 'pointer'
+              }}
+            >
+              🔑 Login
+            </button>
           </div>
         </div>
-      </Router>
-    </ErrorBoundary>
+      </nav>
+      
+      {/* Main Content */}
+      <div style={{ 
+        background: 'white', 
+        margin: '20px', 
+        borderRadius: '15px',
+        minHeight: 'calc(100vh - 100px)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+      }}>
+        {renderPage()}
+      </div>
+      
+      {/* Footer */}
+      <div style={{ 
+        textAlign: 'center', 
+        padding: '20px',
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: '14px'
+      }}>
+        ProCalendar v1.0 - Built with React & Vite ⚡
+      </div>
+    </div>
   );
 }
 
