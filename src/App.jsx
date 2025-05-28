@@ -7,10 +7,24 @@ function App() {
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [backendStatus, setBackendStatus] = useState('checking');
+  const [debugInfo, setDebugInfo] = useState([]);
 
-  // Google OAuth configuration
+  // API configuration
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://procalender-backend.onrender.com';
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const REDIRECT_URI = import.meta.env.VITE_GOOGLE_REDIRECT_URI || window.location.origin + '/auth/google/callback';
+
+  // Add debug message
+  const addDebug = (message) => {
+    console.log(message);
+    setDebugInfo(prev => [...prev.slice(-9), `${new Date().toLocaleTimeString()}: ${message}`]);
+  };
+
+  // Wake up backend on component mount
+  useEffect(() => {
+    wakeUpBackend();
+  }, []);
 
   // Check for auth callback on page load
   useEffect(() => {
@@ -18,6 +32,7 @@ function App() {
     const code = urlParams.get('code');
     
     if (code) {
+      addDebug('🔑 OAuth code received, processing...');
       handleAuthCallback(code);
     }
 
@@ -27,24 +42,104 @@ function App() {
       try {
         const userData = JSON.parse(savedUser);
         setUser(userData);
+        addDebug(`👤 Found saved user: ${userData.name || userData.email}`);
         // Load calendar events if user is logged in
-        if (userData.accessToken) {
-          fetchCalendarEvents(userData.accessToken);
-        }
+        fetchCalendarEvents(userData);
       } catch (error) {
-        console.error('Error parsing saved user:', error);
+        addDebug('❌ Error parsing saved user data');
         localStorage.removeItem('procalendar_user');
       }
     }
   }, []);
 
+  // Wake up the backend (Render free tier sleeps after 15 minutes)
+  const wakeUpBackend = async () => {
+    addDebug('🔄 Checking backend status...');
+    setBackendStatus('waking');
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      const response = await fetch(`${API_BASE_URL}/health`, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const data = await response.text();
+        setBackendStatus('online');
+        addDebug('✅ Backend is online and ready');
+      } else {
+        setBackendStatus('error');
+        addDebug(`⚠️ Backend responded but with error: ${response.status}`);
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        addDebug('⏱️ Backend wake-up timeout (still starting up...)');
+        setBackendStatus('timeout');
+        // Try alternative endpoints
+        await tryAlternativeEndpoints();
+      } else {
+        addDebug(`❌ Backend unreachable: ${error.message}`);
+        setBackendStatus('offline');
+      }
+    }
+  };
+
+  // Try alternative endpoints to wake up backend
+  const tryAlternativeEndpoints = async () => {
+    const endpoints = ['/', '/api/health', '/status'];
+    
+    for (const endpoint of endpoints) {
+      try {
+        addDebug(`🔄 Trying ${API_BASE_URL}${endpoint}...`);
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+          method: 'GET',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        
+        if (response.ok) {
+          setBackendStatus('online');
+          addDebug('✅ Backend woke up successfully');
+          return;
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+    
+    addDebug('😴 Backend is sleeping. Please wait 30-60 seconds and try again.');
+    setBackendStatus('sleeping');
+  };
+
   // Handle Google OAuth login
   const handleGoogleLogin = () => {
     if (!GOOGLE_CLIENT_ID) {
+      addDebug('❌ Google Client ID not configured');
       alert('Google Client ID not configured. Please check your environment variables.');
       return;
     }
 
+    if (backendStatus !== 'online') {
+      addDebug('⚠️ Backend not ready, attempting to wake up first...');
+      wakeUpBackend();
+      setTimeout(() => {
+        if (backendStatus === 'online') {
+          handleGoogleLogin();
+        } else {
+          alert('⚠️ Backend is starting up. Please wait a moment and try again.');
+        }
+      }, 3000);
+      return;
+    }
+
+    addDebug('🔄 Starting Google OAuth flow...');
     setIsLoadingAuth(true);
     
     const scope = [
@@ -63,77 +158,108 @@ function App() {
       `access_type=offline&` +
       `prompt=consent`;
 
+    addDebug('↗️ Redirecting to Google OAuth...');
     window.location.href = authUrl;
   };
 
-  // Handle auth callback
+  // Handle auth callback - send code to backend
   const handleAuthCallback = async (code) => {
     setIsLoadingAuth(true);
+    addDebug('🔄 Processing OAuth callback with backend...');
+    
     try {
-      // Exchange code for access token
-      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      // Ensure backend is awake before processing
+      if (backendStatus !== 'online') {
+        addDebug('🔄 Waking up backend for OAuth processing...');
+        await wakeUpBackend();
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/auth/google/callback`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
         },
-        body: new URLSearchParams({
-          client_id: GOOGLE_CLIENT_ID,
-          client_secret: '', // Note: This should be handled by your backend for security
+        body: JSON.stringify({
           code: code,
-          grant_type: 'authorization_code',
-          redirect_uri: REDIRECT_URI,
+          redirect_uri: REDIRECT_URI
         }),
       });
 
-      if (!tokenResponse.ok) {
-        throw new Error('Failed to exchange code for token');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Backend auth failed: ${response.status} - ${errorText}`);
       }
 
-      const tokens = await tokenResponse.json();
-      
-      // Get user profile
-      const profileResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-        headers: {
-          'Authorization': `Bearer ${tokens.access_token}`,
-        },
-      });
-
-      if (!profileResponse.ok) {
-        throw new Error('Failed to get user profile');
-      }
-
-      const profile = await profileResponse.json();
-      
-      const userData = {
-        id: profile.id,
-        name: profile.name,
-        email: profile.email,
-        picture: profile.picture,
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token
-      };
+      const userData = await response.json();
+      addDebug(`✅ Authentication successful: ${userData.name || userData.email}`);
       
       setUser(userData);
       localStorage.setItem('procalendar_user', JSON.stringify(userData));
       setCurrentPage('dashboard');
       
-      // Fetch calendar events
-      await fetchCalendarEvents(tokens.access_token);
+      // Fetch calendar events immediately
+      await fetchCalendarEvents(userData);
       
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
       
     } catch (error) {
-      console.error('Auth callback error:', error);
-      alert('❌ Authentication failed. Please try again.');
+      addDebug(`❌ OAuth processing failed: ${error.message}`);
+      alert(`❌ Authentication failed: ${error.message}\n\nPlease check that your backend is running and configured correctly.`);
     } finally {
       setIsLoadingAuth(false);
     }
   };
 
-  // Fetch calendar events from Google Calendar API
-  const fetchCalendarEvents = async (accessToken) => {
+  // Fetch calendar events from backend
+  const fetchCalendarEvents = async (userData) => {
     setIsLoadingEvents(true);
+    addDebug('🔄 Fetching calendar events from backend...');
+    
+    try {
+      // Ensure backend is ready
+      if (backendStatus !== 'online') {
+        addDebug('🔄 Ensuring backend is awake...');
+        await wakeUpBackend();
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/api/calendar/events`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${userData.accessToken || userData.token}`,
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Calendar API failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const events = data.events || data.items || data || [];
+      setCalendarEvents(events);
+      addDebug(`✅ Loaded ${events.length} calendar events from backend`);
+      
+    } catch (error) {
+      addDebug(`❌ Backend calendar fetch failed: ${error.message}`);
+      
+      // Try direct Google Calendar API as last resort
+      if (userData.accessToken && userData.accessToken.startsWith('ya29.')) {
+        addDebug('🔄 Trying direct Google Calendar API...');
+        await fetchCalendarEventsDirect(userData.accessToken);
+      } else {
+        addDebug('❌ No valid access token for direct API call');
+        throw new Error('Failed to load calendar events from both backend and direct API');
+      }
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  };
+
+  // Direct Google Calendar API call (fallback only)
+  const fetchCalendarEventsDirect = async (accessToken) => {
     try {
       const now = new Date();
       const timeMin = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
@@ -154,30 +280,36 @@ function App() {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch calendar events');
+        throw new Error(`Google Calendar API failed: ${response.status}`);
       }
 
       const data = await response.json();
       setCalendarEvents(data.items || []);
-      console.log('✅ Loaded', data.items?.length || 0, 'calendar events');
+      addDebug(`✅ Loaded ${data.items?.length || 0} events from direct Google API`);
       
     } catch (error) {
-      console.error('Error fetching calendar events:', error);
-      alert('❌ Failed to load calendar events. Please try refreshing.');
-    } finally {
-      setIsLoadingEvents(false);
+      addDebug(`❌ Direct Google Calendar API failed: ${error.message}`);
+      throw error;
     }
   };
 
   // Refresh calendar events
   const refreshEvents = () => {
-    if (user?.accessToken) {
-      fetchCalendarEvents(user.accessToken);
+    if (user) {
+      addDebug('🔄 Refreshing calendar events...');
+      fetchCalendarEvents(user);
     }
+  };
+
+  // Force wake backend
+  const forceWakeBackend = () => {
+    addDebug('🔄 Force waking backend...');
+    wakeUpBackend();
   };
 
   // Handle logout
   const handleLogout = () => {
+    addDebug('👋 User logged out');
     setUser(null);
     setCalendarEvents([]);
     localStorage.removeItem('procalendar_user');
@@ -190,7 +322,6 @@ function App() {
     const end = event.end?.dateTime ? new Date(event.end.dateTime) : new Date(event.end?.date);
     
     if (event.start?.date) {
-      // All-day event
       return 'All day';
     }
     
@@ -203,6 +334,60 @@ function App() {
       const eventDate = event.start?.dateTime ? new Date(event.start.dateTime) : new Date(event.start?.date);
       return eventDate.getDate() === date && eventDate.getMonth() === new Date().getMonth();
     });
+  };
+
+  // Backend status indicator
+  const BackendStatus = () => {
+    const statusColors = {
+      checking: '#ffc107',
+      waking: '#17a2b8', 
+      online: '#28a745',
+      sleeping: '#6c757d',
+      timeout: '#fd7e14',
+      offline: '#dc3545',
+      error: '#dc3545'
+    };
+
+    const statusMessages = {
+      checking: '🔄 Checking backend...',
+      waking: '⏰ Waking up backend...',
+      online: '✅ Backend online',
+      sleeping: '😴 Backend sleeping',
+      timeout: '⏱️ Backend timeout',
+      offline: '❌ Backend offline',
+      error: '⚠️ Backend error'
+    };
+
+    return (
+      <div style={{
+        padding: '10px 15px',
+        backgroundColor: statusColors[backendStatus],
+        color: 'white',
+        borderRadius: '5px',
+        fontSize: '14px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+        <span>{statusMessages[backendStatus]}</span>
+        {(backendStatus === 'sleeping' || backendStatus === 'offline') && (
+          <button 
+            onClick={forceWakeBackend}
+            style={{
+              background: 'rgba(255,255,255,0.2)',
+              border: '1px solid white',
+              color: 'white',
+              padding: '5px 10px',
+              borderRadius: '3px',
+              cursor: 'pointer',
+              fontSize: '12px'
+            }}
+          >
+            Wake Up
+          </button>
+        )}
+      </div>
+    );
   };
 
   // Event detail modal
@@ -358,6 +543,27 @@ function App() {
     );
   };
 
+  // Debug panel
+  const DebugPanel = () => (
+    <details style={{ marginTop: '20px' }}>
+      <summary style={{ cursor: 'pointer', fontWeight: 'bold' }}>🔍 Debug Log</summary>
+      <div style={{ 
+        marginTop: '10px',
+        padding: '10px',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '5px',
+        fontSize: '12px',
+        maxHeight: '200px',
+        overflowY: 'auto',
+        fontFamily: 'monospace'
+      }}>
+        {debugInfo.map((info, index) => (
+          <div key={index} style={{ marginBottom: '2px' }}>{info}</div>
+        ))}
+      </div>
+    </details>
+  );
+
   // Simple page navigation
   const renderPage = () => {
     if (isLoadingAuth) {
@@ -374,6 +580,7 @@ function App() {
           <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔄</div>
           <h2>Connecting to Google...</h2>
           <p>Please wait while we set up your account.</p>
+          <BackendStatus />
         </div>
       );
     }
@@ -405,6 +612,10 @@ function App() {
                 <p><strong>Email:</strong> {user.email}</p>
                 <p><strong>Status:</strong> ✅ Google Calendar Connected</p>
                 <p><strong>Events Loaded:</strong> {calendarEvents.length} events this month</p>
+                
+                <div style={{ marginBottom: '20px' }}>
+                  <BackendStatus />
+                </div>
                 
                 <button 
                   onClick={refreshEvents}
@@ -439,6 +650,8 @@ function App() {
                 >
                   🚪 Sign Out
                 </button>
+
+                <DebugPanel />
               </div>
             </div>
           );
@@ -450,6 +663,11 @@ function App() {
             <p style={{ marginBottom: '30px', color: '#666' }}>
               Connect your Google account to access your calendar and schedule meetings
             </p>
+            
+            <div style={{ marginBottom: '20px' }}>
+              <BackendStatus />
+            </div>
+            
             <div style={{ 
               maxWidth: '400px', 
               margin: '20px auto',
@@ -462,22 +680,28 @@ function App() {
                 style={{
                   width: '100%',
                   padding: '15px',
-                  backgroundColor: '#4285f4',
+                  backgroundColor: backendStatus === 'online' ? '#4285f4' : '#6c757d',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
                   fontSize: '16px',
-                  cursor: 'pointer',
+                  cursor: backendStatus === 'online' ? 'pointer' : 'not-allowed',
                   marginBottom: '15px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}
                 onClick={handleGoogleLogin}
-                disabled={!GOOGLE_CLIENT_ID}
+                disabled={!GOOGLE_CLIENT_ID || backendStatus !== 'online'}
               >
                 🔐 Continue with Google
               </button>
+              
+              {backendStatus !== 'online' && (
+                <p style={{ color: '#dc3545', fontSize: '14px', marginTop: '10px' }}>
+                  ⚠️ Please wait for backend to wake up before logging in
+                </p>
+              )}
               
               {!GOOGLE_CLIENT_ID && (
                 <p style={{ color: '#dc3545', fontSize: '14px', marginTop: '10px' }}>
@@ -485,13 +709,15 @@ function App() {
                 </p>
               )}
             </div>
+
+            <DebugPanel />
           </div>
         );
       
       case 'calendar':
         return (
           <div style={{ padding: '40px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h1>📅 Calendar View</h1>
               {user && (
                 <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -524,6 +750,10 @@ function App() {
                 </div>
               )}
             </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <BackendStatus />
+            </div>
             
             {!user && (
               <div style={{ 
@@ -551,7 +781,7 @@ function App() {
             {user && (
               <div style={{ marginBottom: '20px', textAlign: 'center' }}>
                 <span style={{ 
-                  backgroundColor: '#d4edda',
+                  backgroundColor: calendarEvents.length > 0 ? '#d4edda' : '#fff3cd',
                   padding: '8px 16px',
                   borderRadius: '20px',
                   fontSize: '14px'
@@ -645,6 +875,8 @@ function App() {
               event={selectedEvent} 
               onClose={() => setSelectedEvent(null)} 
             />
+
+            <DebugPanel />
           </div>
         );
       
@@ -675,6 +907,10 @@ function App() {
                   </div>
                 </div>
               )}
+            </div>
+
+            <div style={{ marginBottom: '20px' }}>
+              <BackendStatus />
             </div>
             
             <p style={{ fontSize: '1.2em', marginBottom: '40px', color: '#666' }}>
@@ -802,13 +1038,13 @@ function App() {
                 cursor: 'pointer',
                 transition: 'transform 0.2s'
               }}
-              onClick={user ? refreshEvents : () => alert('Please sign in first')}
+              onClick={user ? refreshEvents : forceWakeBackend}
               onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
               onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
               >
                 <h3 style={{ margin: '0 0 15px 0', fontSize: '1.5em' }}>🔄 Sync</h3>
                 <p style={{ margin: 0 }}>
-                  {user ? 'Refresh calendar data' : 'Sync with Google Calendar'}
+                  {user ? 'Refresh calendar data' : 'Wake up backend'}
                 </p>
               </div>
             </div>
@@ -817,6 +1053,8 @@ function App() {
               event={selectedEvent} 
               onClose={() => setSelectedEvent(null)} 
             />
+
+            <DebugPanel />
           </div>
         );
     }
@@ -929,7 +1167,7 @@ function App() {
         color: 'rgba(255,255,255,0.8)',
         fontSize: '14px'
       }}>
-        ProCalendar v2.0 - {user ? `${calendarEvents.length} events synced with Google Calendar 🔄` : 'Connect your Google account to get started 🚀'}
+        ProCalendar v2.1 - {user ? `${calendarEvents.length} real events synced 📊` : 'Backend waking up... 😴'} | Backend: {backendStatus}
       </div>
     </div>
   );
