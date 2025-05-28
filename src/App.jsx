@@ -1,80 +1,136 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ErrorBoundary from './components/ErrorBoundary';
+
+// Lazy load components to prevent blocking errors
+const Dashboard = React.lazy(() => import('./pages/Dashboard').catch(() => ({ default: () => <div>Dashboard failed to load</div> })));
+const Login = React.lazy(() => import('./pages/Login').catch(() => ({ default: () => <div>Login failed to load</div> })));
+const Calendar = React.lazy(() => import('./pages/Calendar').catch(() => ({ default: () => <div>Calendar failed to load</div> })));
+
+// Simple Loading Component
+const LoadingSpinner = () => (
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    height: '100vh',
+    fontSize: '18px'
+  }}>
+    🔄 Loading ProCalendar...
+  </div>
+);
+
+// Simple Error Fallback
+const ErrorFallback = ({ error, retry }) => (
+  <div style={{ 
+    padding: '20px', 
+    textAlign: 'center',
+    fontFamily: 'Arial, sans-serif'
+  }}>
+    <h1>❌ Oops! Something went wrong</h1>
+    <p>ProCalendar encountered an error. Please try refreshing the page.</p>
+    <details style={{ marginTop: '20px', textAlign: 'left' }}>
+      <summary>Error Details (for debugging)</summary>
+      <pre style={{ 
+        background: '#f5f5f5', 
+        padding: '10px', 
+        borderRadius: '5px',
+        fontSize: '12px',
+        overflow: 'auto'
+      }}>
+        {error?.toString()}
+      </pre>
+    </details>
+    <div style={{ marginTop: '20px' }}>
+      <button 
+        onClick={() => window.location.reload()} 
+        style={{
+          padding: '10px 20px',
+          backgroundColor: '#007bff',
+          color: 'white',
+          border: 'none',
+          borderRadius: '5px',
+          cursor: 'pointer',
+          fontSize: '16px'
+        }}
+      >
+        🔄 Refresh Page
+      </button>
+    </div>
+  </div>
+);
 
 function App() {
-  const [status, setStatus] = useState('🔄 Loading...');
+  const [initError, setInitError] = useState(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    // Simple initialization test
-    try {
-      setStatus('✅ ProCalendar Loaded Successfully!');
-    } catch (error) {
-      setStatus(`❌ Error: ${error.message}`);
-    }
+    const initializeApp = async () => {
+      try {
+        // Test environment variables
+        const requiredEnvVars = [
+          'VITE_FIREBASE_API_KEY',
+          'VITE_FIREBASE_AUTH_DOMAIN', 
+          'VITE_FIREBASE_PROJECT_ID'
+        ];
+
+        const missingVars = requiredEnvVars.filter(
+          varName => !import.meta.env[varName]
+        );
+
+        if (missingVars.length > 0) {
+          throw new Error(`Missing environment variables: ${missingVars.join(', ')}`);
+        }
+
+        // Try to initialize Firebase (if config exists)
+        try {
+          await import('./firebase/config');
+          console.log('✅ Firebase initialized successfully');
+        } catch (firebaseError) {
+          console.warn('⚠️ Firebase initialization warning:', firebaseError);
+          // Don't fail the entire app for Firebase issues
+        }
+
+        setIsReady(true);
+      } catch (error) {
+        console.error('❌ App initialization failed:', error);
+        setInitError(error);
+      }
+    };
+
+    initializeApp();
   }, []);
 
-  return (
-    <div style={{ 
-      padding: '40px', 
-      textAlign: 'center',
-      fontFamily: 'Arial, sans-serif',
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      color: 'white'
-    }}>
-      <h1 style={{ fontSize: '3em', margin: '0' }}>📅 ProCalendar</h1>
-      <p style={{ fontSize: '1.5em', margin: '20px 0' }}>{status}</p>
-      
-      <div style={{ 
-        background: 'rgba(255,255,255,0.1)', 
-        padding: '20px', 
-        borderRadius: '10px',
-        marginTop: '30px'
-      }}>
-        <h3>🎯 Environment Check:</h3>
-        <p>API URL: {import.meta.env.VITE_API_URL ? '✅' : '❌'}</p>
-        <p>Firebase Key: {import.meta.env.VITE_FIREBASE_API_KEY ? '✅' : '❌'}</p>
-        <p>Firebase Domain: {import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ? '✅' : '❌'}</p>
-        <p>Google Client ID: {import.meta.env.VITE_GOOGLE_CLIENT_ID ? '✅' : '❌'}</p>
-      </div>
+  if (initError) {
+    return <ErrorFallback error={initError} />;
+  }
 
-      <div style={{ marginTop: '30px' }}>
-        <button 
-          onClick={() => window.location.reload()}
-          style={{
-            padding: '15px 30px',
-            fontSize: '18px',
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            margin: '0 10px'
-          }}
-        >
-          🔄 Refresh
-        </button>
-        
-        <button 
-          onClick={() => window.open('https://github.com/uma26madasu/procalender_frontend', '_blank')}
-          style={{
-            padding: '15px 30px',
-            fontSize: '18px',
-            backgroundColor: '#6c757d',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            margin: '0 10px'
-          }}
-        >
-          📁 View Code
-        </button>
-      </div>
-    </div>
+  if (!isReady) {
+    return <LoadingSpinner />;
+  }
+
+  return (
+    <ErrorBoundary fallback={ErrorFallback}>
+      <Router>
+        <div className="App">
+          <Suspense fallback={<LoadingSpinner />}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/calendar" element={<Calendar />} />
+              <Route path="*" element={
+                <div style={{ padding: '20px', textAlign: 'center' }}>
+                  <h1>404 - Page Not Found</h1>
+                  <p>The page you're looking for doesn't exist.</p>
+                  <a href="/" style={{ color: '#007bff' }}>← Go Home</a>
+                </div>
+              } />
+            </Routes>
+          </Suspense>
+        </div>
+      </Router>
+    </ErrorBoundary>
   );
 }
 
