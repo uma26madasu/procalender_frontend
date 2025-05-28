@@ -4,6 +4,9 @@ function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [user, setUser] = useState(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(false);
+  const [calendarEvents, setCalendarEvents] = useState([]);
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   // Google OAuth configuration
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -18,11 +21,16 @@ function App() {
       handleAuthCallback(code);
     }
 
-    // Check if user is already logged in (from localStorage)
+    // Check if user is already logged in
     const savedUser = localStorage.getItem('procalendar_user');
     if (savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        const userData = JSON.parse(savedUser);
+        setUser(userData);
+        // Load calendar events if user is logged in
+        if (userData.accessToken) {
+          fetchCalendarEvents(userData.accessToken);
+        }
       } catch (error) {
         console.error('Error parsing saved user:', error);
         localStorage.removeItem('procalendar_user');
@@ -43,8 +51,8 @@ function App() {
       'openid',
       'profile',
       'email',
-      'https://www.googleapis.com/auth/calendar',
-      'https://www.googleapis.com/auth/calendar.events'
+      'https://www.googleapis.com/auth/calendar.readonly',
+      'https://www.googleapis.com/auth/calendar.events.readonly'
     ].join(' ');
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
@@ -62,24 +70,59 @@ function App() {
   const handleAuthCallback = async (code) => {
     setIsLoadingAuth(true);
     try {
-      // In a real app, you'd send this code to your backend
-      // For now, let's just simulate a successful login
-      const mockUser = {
-        id: 'google_123',
-        name: 'Google User',
-        email: 'user@gmail.com',
-        picture: 'https://via.placeholder.com/40',
-        accessToken: 'mock_access_token'
+      // Exchange code for access token
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: GOOGLE_CLIENT_ID,
+          client_secret: '', // Note: This should be handled by your backend for security
+          code: code,
+          grant_type: 'authorization_code',
+          redirect_uri: REDIRECT_URI,
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to exchange code for token');
+      }
+
+      const tokens = await tokenResponse.json();
+      
+      // Get user profile
+      const profileResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: {
+          'Authorization': `Bearer ${tokens.access_token}`,
+        },
+      });
+
+      if (!profileResponse.ok) {
+        throw new Error('Failed to get user profile');
+      }
+
+      const profile = await profileResponse.json();
+      
+      const userData = {
+        id: profile.id,
+        name: profile.name,
+        email: profile.email,
+        picture: profile.picture,
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token
       };
       
-      setUser(mockUser);
-      localStorage.setItem('procalendar_user', JSON.stringify(mockUser));
+      setUser(userData);
+      localStorage.setItem('procalendar_user', JSON.stringify(userData));
       setCurrentPage('dashboard');
+      
+      // Fetch calendar events
+      await fetchCalendarEvents(tokens.access_token);
       
       // Clean up URL
       window.history.replaceState({}, document.title, window.location.pathname);
       
-      alert('✅ Successfully connected to Google Calendar!');
     } catch (error) {
       console.error('Auth callback error:', error);
       alert('❌ Authentication failed. Please try again.');
@@ -88,11 +131,231 @@ function App() {
     }
   };
 
+  // Fetch calendar events from Google Calendar API
+  const fetchCalendarEvents = async (accessToken) => {
+    setIsLoadingEvents(true);
+    try {
+      const now = new Date();
+      const timeMin = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const timeMax = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+
+      const response = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
+        `timeMin=${timeMin}&` +
+        `timeMax=${timeMax}&` +
+        `singleEvents=true&` +
+        `orderBy=startTime&` +
+        `maxResults=50`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch calendar events');
+      }
+
+      const data = await response.json();
+      setCalendarEvents(data.items || []);
+      console.log('✅ Loaded', data.items?.length || 0, 'calendar events');
+      
+    } catch (error) {
+      console.error('Error fetching calendar events:', error);
+      alert('❌ Failed to load calendar events. Please try refreshing.');
+    } finally {
+      setIsLoadingEvents(false);
+    }
+  };
+
+  // Refresh calendar events
+  const refreshEvents = () => {
+    if (user?.accessToken) {
+      fetchCalendarEvents(user.accessToken);
+    }
+  };
+
   // Handle logout
   const handleLogout = () => {
     setUser(null);
+    setCalendarEvents([]);
     localStorage.removeItem('procalendar_user');
     setCurrentPage('dashboard');
+  };
+
+  // Format date for display
+  const formatEventTime = (event) => {
+    const start = event.start?.dateTime ? new Date(event.start.dateTime) : new Date(event.start?.date);
+    const end = event.end?.dateTime ? new Date(event.end.dateTime) : new Date(event.end?.date);
+    
+    if (event.start?.date) {
+      // All-day event
+      return 'All day';
+    }
+    
+    return `${start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+  };
+
+  // Get events for a specific date
+  const getEventsForDate = (date) => {
+    return calendarEvents.filter(event => {
+      const eventDate = event.start?.dateTime ? new Date(event.start.dateTime) : new Date(event.start?.date);
+      return eventDate.getDate() === date && eventDate.getMonth() === new Date().getMonth();
+    });
+  };
+
+  // Event detail modal
+  const EventModal = ({ event, onClose }) => {
+    if (!event) return null;
+
+    const start = event.start?.dateTime ? new Date(event.start.dateTime) : new Date(event.start?.date);
+    const end = event.end?.dateTime ? new Date(event.end.dateTime) : new Date(event.end?.date);
+
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000
+      }} onClick={onClose}>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '10px',
+          padding: '30px',
+          maxWidth: '500px',
+          width: '90%',
+          maxHeight: '80vh',
+          overflow: 'auto'
+        }} onClick={e => e.stopPropagation()}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ margin: 0 }}>{event.summary || 'Untitled Event'}</h2>
+            <button onClick={onClose} style={{ 
+              background: 'none', 
+              border: 'none', 
+              fontSize: '24px', 
+              cursor: 'pointer' 
+            }}>×</button>
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <strong>📅 Date:</strong> {start.toLocaleDateString()}
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <strong>🕐 Time:</strong> {formatEventTime(event)}
+          </div>
+
+          {event.location && (
+            <div style={{ marginBottom: '15px' }}>
+              <strong>📍 Location:</strong> {event.location}
+            </div>
+          )}
+
+          {event.description && (
+            <div style={{ marginBottom: '15px' }}>
+              <strong>📝 Description:</strong>
+              <div style={{ 
+                marginTop: '5px', 
+                padding: '10px', 
+                backgroundColor: '#f8f9fa', 
+                borderRadius: '5px',
+                whiteSpace: 'pre-wrap'
+              }}>
+                {event.description}
+              </div>
+            </div>
+          )}
+
+          {event.attendees && event.attendees.length > 0 && (
+            <div style={{ marginBottom: '15px' }}>
+              <strong>👥 Attendees ({event.attendees.length}):</strong>
+              <div style={{ marginTop: '10px' }}>
+                {event.attendees.map((attendee, index) => (
+                  <div key={index} style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    marginBottom: '8px',
+                    padding: '8px',
+                    backgroundColor: '#f8f9fa',
+                    borderRadius: '5px'
+                  }}>
+                    <span style={{ 
+                      display: 'inline-block',
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: attendee.responseStatus === 'accepted' ? '#28a745' : 
+                                    attendee.responseStatus === 'declined' ? '#dc3545' : '#ffc107',
+                      marginRight: '8px'
+                    }}></span>
+                    <span>{attendee.displayName || attendee.email}</span>
+                    {attendee.organizer && <span style={{ 
+                      marginLeft: '8px', 
+                      fontSize: '12px', 
+                      color: '#666',
+                      backgroundColor: '#e9ecef',
+                      padding: '2px 6px',
+                      borderRadius: '3px'
+                    }}>Organizer</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {event.conferenceData?.entryPoints && (
+            <div style={{ marginBottom: '15px' }}>
+              <strong>💻 Meeting Links:</strong>
+              <div style={{ marginTop: '10px' }}>
+                {event.conferenceData.entryPoints.map((entry, index) => (
+                  <a 
+                    key={index}
+                    href={entry.uri} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-block',
+                      padding: '8px 16px',
+                      backgroundColor: '#007bff',
+                      color: 'white',
+                      textDecoration: 'none',
+                      borderRadius: '5px',
+                      marginRight: '10px',
+                      marginBottom: '5px'
+                    }}
+                  >
+                    🔗 {entry.entryPointType === 'video' ? 'Join Video Call' : 'Join Meeting'}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {event.htmlLink && (
+            <div style={{ marginTop: '20px' }}>
+              <a 
+                href={event.htmlLink} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{
+                  color: '#007bff',
+                  textDecoration: 'none'
+                }}
+              >
+                📅 View in Google Calendar →
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   // Simple page navigation
@@ -141,6 +404,25 @@ function App() {
                 />
                 <p><strong>Email:</strong> {user.email}</p>
                 <p><strong>Status:</strong> ✅ Google Calendar Connected</p>
+                <p><strong>Events Loaded:</strong> {calendarEvents.length} events this month</p>
+                
+                <button 
+                  onClick={refreshEvents}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    backgroundColor: '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    cursor: 'pointer',
+                    marginBottom: '10px'
+                  }}
+                  disabled={isLoadingEvents}
+                >
+                  {isLoadingEvents ? '🔄 Refreshing...' : '🔄 Refresh Calendar'}
+                </button>
                 
                 <button 
                   onClick={handleLogout}
@@ -152,8 +434,7 @@ function App() {
                     border: 'none',
                     borderRadius: '8px',
                     fontSize: '16px',
-                    cursor: 'pointer',
-                    marginTop: '20px'
+                    cursor: 'pointer'
                   }}
                 >
                   🚪 Sign Out
@@ -203,25 +484,6 @@ function App() {
                   ⚠️ Google OAuth not configured
                 </p>
               )}
-              
-              <button 
-                style={{
-                  width: '100%',
-                  padding: '15px',
-                  backgroundColor: '#333',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}
-                onClick={() => alert('GitHub login coming soon!')}
-              >
-                🐙 Continue with GitHub
-              </button>
             </div>
           </div>
         );
@@ -233,6 +495,21 @@ function App() {
               <h1>📅 Calendar View</h1>
               {user && (
                 <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <button 
+                    onClick={refreshEvents}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '5px',
+                      cursor: 'pointer',
+                      marginRight: '15px'
+                    }}
+                    disabled={isLoadingEvents}
+                  >
+                    {isLoadingEvents ? '🔄' : '🔄 Refresh'}
+                  </button>
                   <img 
                     src={user.picture} 
                     alt="Profile" 
@@ -270,6 +547,19 @@ function App() {
                 </button> to access your Google Calendar
               </div>
             )}
+
+            {user && (
+              <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+                <span style={{ 
+                  backgroundColor: '#d4edda',
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  fontSize: '14px'
+                }}>
+                  📊 {calendarEvents.length} events loaded for {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                </span>
+              </div>
+            )}
             
             <div style={{ 
               display: 'grid', 
@@ -292,29 +582,69 @@ function App() {
                   {day}
                 </div>
               ))}
-              {Array.from({length: 35}, (_, i) => (
-                <div key={i} style={{ 
-                  padding: '20px', 
-                  backgroundColor: 'white',
-                  textAlign: 'center',
-                  minHeight: '80px',
-                  borderRadius: '5px',
-                  border: '1px solid #dee2e6',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '16px',
-                  fontWeight: '500',
-                  color: i + 1 <= 31 ? '#333' : '#ccc',
-                  cursor: user ? 'pointer' : 'default',
-                  opacity: user ? 1 : 0.6
-                }}
-                onClick={() => user && alert(`Calendar event for ${i + 1} would go here!`)}
-                >
-                  {i + 1 <= 31 ? i + 1 : ''}
-                </div>
-              ))}
+              {Array.from({length: 35}, (_, i) => {
+                const date = i + 1;
+                const dayEvents = user ? getEventsForDate(date) : [];
+                
+                return (
+                  <div key={i} style={{ 
+                    padding: '8px', 
+                    backgroundColor: 'white',
+                    minHeight: '100px',
+                    borderRadius: '5px',
+                    border: '1px solid #dee2e6',
+                    fontSize: '14px',
+                    position: 'relative',
+                    cursor: dayEvents.length > 0 ? 'pointer' : 'default'
+                  }}>
+                    <div style={{ 
+                      fontWeight: 'bold', 
+                      marginBottom: '5px',
+                      color: date <= 31 ? '#333' : '#ccc'
+                    }}>
+                      {date <= 31 ? date : ''}
+                    </div>
+                    
+                    {dayEvents.slice(0, 3).map((event, eventIndex) => (
+                      <div 
+                        key={eventIndex} 
+                        style={{
+                          backgroundColor: '#007bff',
+                          color: 'white',
+                          padding: '2px 6px',
+                          borderRadius: '3px',
+                          fontSize: '10px',
+                          marginBottom: '2px',
+                          cursor: 'pointer',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}
+                        onClick={() => setSelectedEvent(event)}
+                        title={event.summary}
+                      >
+                        {event.summary || 'Untitled'}
+                      </div>
+                    ))}
+                    
+                    {dayEvents.length > 3 && (
+                      <div style={{
+                        fontSize: '10px',
+                        color: '#666',
+                        fontStyle: 'italic'
+                      }}>
+                        +{dayEvents.length - 3} more
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
+
+            <EventModal 
+              event={selectedEvent} 
+              onClose={() => setSelectedEvent(null)} 
+            />
           </div>
         );
       
@@ -339,7 +669,9 @@ function App() {
                   />
                   <div>
                     <div style={{ fontWeight: 'bold' }}>{user.name}</div>
-                    <div style={{ fontSize: '12px', color: '#666' }}>Google Connected ✅</div>
+                    <div style={{ fontSize: '12px', color: '#666' }}>
+                      {calendarEvents.length} events loaded ✅
+                    </div>
                   </div>
                 </div>
               )}
@@ -372,6 +704,47 @@ function App() {
                 </button> to access your calendar and start scheduling!
               </div>
             )}
+
+            {user && calendarEvents.length > 0 && (
+              <div style={{ 
+                backgroundColor: '#f8f9fa',
+                borderRadius: '10px',
+                padding: '20px',
+                marginBottom: '30px'
+              }}>
+                <h3>🗓️ Upcoming Events</h3>
+                <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                  {calendarEvents
+                    .filter(event => new Date(event.start?.dateTime || event.start?.date) >= new Date())
+                    .slice(0, 5)
+                    .map((event, index) => (
+                    <div 
+                      key={index} 
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '10px',
+                        backgroundColor: 'white',
+                        borderRadius: '5px',
+                        marginBottom: '8px',
+                        cursor: 'pointer',
+                        border: '1px solid #dee2e6'
+                      }}
+                      onClick={() => setSelectedEvent(event)}
+                    >
+                      <div>
+                        <div style={{ fontWeight: 'bold' }}>{event.summary || 'Untitled Event'}</div>
+                        <div style={{ fontSize: '12px', color: '#666' }}>
+                          {formatEventTime(event)} • {new Date(event.start?.dateTime || event.start?.date).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: '12px', color: '#007bff' }}>View Details →</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             
             <div style={{ 
               display: 'grid', 
@@ -395,7 +768,7 @@ function App() {
               >
                 <h3 style={{ margin: '0 0 15px 0', fontSize: '1.5em' }}>📅 Calendar</h3>
                 <p style={{ margin: 0 }}>
-                  {user ? 'View and manage your schedule' : 'Connect Google to view calendar'}
+                  {user ? `View ${calendarEvents.length} events` : 'Connect Google to view calendar'}
                 </p>
               </div>
               
@@ -429,30 +802,21 @@ function App() {
                 cursor: 'pointer',
                 transition: 'transform 0.2s'
               }}
-              onClick={() => alert('Settings coming soon!')}
+              onClick={user ? refreshEvents : () => alert('Please sign in first')}
               onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
               onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
               >
-                <h3 style={{ margin: '0 0 15px 0', fontSize: '1.5em' }}>⚙️ Settings</h3>
-                <p style={{ margin: 0 }}>Configure your preferences</p>
+                <h3 style={{ margin: '0 0 15px 0', fontSize: '1.5em' }}>🔄 Sync</h3>
+                <p style={{ margin: 0 }}>
+                  {user ? 'Refresh calendar data' : 'Sync with Google Calendar'}
+                </p>
               </div>
             </div>
 
-            <div style={{ 
-              marginTop: '40px',
-              padding: '20px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '10px',
-              border: '1px solid #dee2e6'
-            }}>
-              <h3>🎯 Environment Status:</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-                <div>API URL: {import.meta.env.VITE_API_URL ? '✅ Connected' : '❌ Missing'}</div>
-                <div>Firebase: {import.meta.env.VITE_FIREBASE_API_KEY ? '✅ Configured' : '❌ Missing'}</div>
-                <div>Google OAuth: {GOOGLE_CLIENT_ID ? '✅ Ready' : '❌ Missing'}</div>
-                <div>User Status: {user ? '✅ Logged In' : '⚪ Not Logged In'}</div>
-              </div>
-            </div>
+            <EventModal 
+              event={selectedEvent} 
+              onClose={() => setSelectedEvent(null)} 
+            />
           </div>
         );
     }
@@ -565,7 +929,7 @@ function App() {
         color: 'rgba(255,255,255,0.8)',
         fontSize: '14px'
       }}>
-        ProCalendar v1.0 - {user ? `Welcome back, ${user.name}! 👋` : 'Connect your Google account to get started 🚀'}
+        ProCalendar v2.0 - {user ? `${calendarEvents.length} events synced with Google Calendar 🔄` : 'Connect your Google account to get started 🚀'}
       </div>
     </div>
   );
