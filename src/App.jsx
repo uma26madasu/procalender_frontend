@@ -59,9 +59,10 @@ function App() {
     
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
       
-      const response = await fetch(`${API_BASE_URL}/health`, {
+      // Try the root endpoint first (as shown in your backend response)
+      const response = await fetch(`${API_BASE_URL}/`, {
         method: 'GET',
         signal: controller.signal,
         headers: {
@@ -72,29 +73,35 @@ function App() {
       clearTimeout(timeoutId);
       
       if (response.ok) {
-        const data = await response.text();
-        setBackendStatus('online');
-        addDebug('✅ Backend is online and ready');
+        const data = await response.json();
+        if (data.status === 'Success') {
+          setBackendStatus('online');
+          addDebug(`✅ Backend online: ${data.message}`);
+        } else {
+          setBackendStatus('online');
+          addDebug('✅ Backend is responding');
+        }
       } else {
         setBackendStatus('error');
         addDebug(`⚠️ Backend responded but with error: ${response.status}`);
+        // Still try alternative endpoints
+        await tryAlternativeEndpoints();
       }
     } catch (error) {
       if (error.name === 'AbortError') {
-        addDebug('⏱️ Backend wake-up timeout (still starting up...)');
+        addDebug('⏱️ Backend wake-up timeout, trying alternatives...');
         setBackendStatus('timeout');
-        // Try alternative endpoints
         await tryAlternativeEndpoints();
       } else {
-        addDebug(`❌ Backend unreachable: ${error.message}`);
-        setBackendStatus('offline');
+        addDebug(`❌ Backend connection error: ${error.message}`);
+        await tryAlternativeEndpoints();
       }
     }
   };
 
   // Try alternative endpoints to wake up backend
   const tryAlternativeEndpoints = async () => {
-    const endpoints = ['/', '/api/health', '/status'];
+    const endpoints = ['/', '/api/status', '/health', '/api/health'];
     
     for (const endpoint of endpoints) {
       try {
@@ -105,17 +112,29 @@ function App() {
         });
         
         if (response.ok) {
-          setBackendStatus('online');
-          addDebug('✅ Backend woke up successfully');
-          return;
+          const text = await response.text();
+          try {
+            const data = JSON.parse(text);
+            if (data.status === 'Success' || data.message) {
+              setBackendStatus('online');
+              addDebug(`✅ Backend online via ${endpoint}: ${data.message || 'API ready'}`);
+              return;
+            }
+          } catch {
+            // Not JSON, but response was OK
+            setBackendStatus('online');
+            addDebug(`✅ Backend responding via ${endpoint}`);
+            return;
+          }
         }
       } catch (error) {
+        addDebug(`❌ ${endpoint} failed: ${error.message}`);
         continue;
       }
     }
     
-    addDebug('😴 Backend is sleeping. Please wait 30-60 seconds and try again.');
-    setBackendStatus('sleeping');
+    addDebug('😴 All endpoints failed. Backend may be starting up...');
+    setBackendStatus('error');
   };
 
   // Handle Google OAuth login
@@ -170,29 +189,57 @@ function App() {
     try {
       // Ensure backend is awake before processing
       if (backendStatus !== 'online') {
-        addDebug('🔄 Waking up backend for OAuth processing...');
+        addDebug('🔄 Ensuring backend is ready for OAuth...');
         await wakeUpBackend();
+        // Give it a moment to be ready
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
       
-      const response = await fetch(`${API_BASE_URL}/auth/google/callback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        },
-        body: JSON.stringify({
-          code: code,
-          redirect_uri: REDIRECT_URI
-        }),
-      });
+      // Try multiple auth endpoints
+      const authEndpoints = [
+        '/auth/google/callback',
+        '/api/auth/google/callback', 
+        '/api/auth/callback',
+        '/google/callback'
+      ];
+      
+      let authSuccess = false;
+      let userData = null;
+      
+      for (const endpoint of authEndpoints) {
+        try {
+          addDebug(`🔄 Trying auth endpoint: ${endpoint}`);
+          
+          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache'
+            },
+            body: JSON.stringify({
+              code: code,
+              redirect_uri: REDIRECT_URI
+            }),
+          });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Backend auth failed: ${response.status} - ${errorText}`);
+          if (response.ok) {
+            userData = await response.json();
+            addDebug(`✅ Auth successful via ${endpoint}: ${userData.name || userData.email}`);
+            authSuccess = true;
+            break;
+          } else {
+            const errorText = await response.text();
+            addDebug(`❌ Auth failed via ${endpoint}: ${response.status} - ${errorText}`);
+          }
+        } catch (endpointError) {
+          addDebug(`❌ ${endpoint} error: ${endpointError.message}`);
+          continue;
+        }
       }
 
-      const userData = await response.json();
-      addDebug(`✅ Authentication successful: ${userData.name || userData.email}`);
+      if (!authSuccess) {
+        throw new Error('All auth endpoints failed. Please check backend configuration.');
+      }
       
       setUser(userData);
       localStorage.setItem('procalendar_user', JSON.stringify(userData));
@@ -206,7 +253,7 @@ function App() {
       
     } catch (error) {
       addDebug(`❌ OAuth processing failed: ${error.message}`);
-      alert(`❌ Authentication failed: ${error.message}\n\nPlease check that your backend is running and configured correctly.`);
+      alert(`❌ Authentication failed: ${error.message}\n\nTip: Your backend is online but may need auth endpoint configuration.`);
     } finally {
       setIsLoadingAuth(false);
     }
@@ -224,23 +271,51 @@ function App() {
         await wakeUpBackend();
       }
       
-      const response = await fetch(`${API_BASE_URL}/api/calendar/events`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${userData.accessToken || userData.token}`,
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        },
-      });
+      // Try multiple calendar endpoints
+      const calendarEndpoints = [
+        '/api/calendar/events',
+        '/calendar/events',
+        '/api/events',
+        '/events',
+        '/api/calendar'
+      ];
+      
+      let eventsLoaded = false;
+      let events = [];
+      
+      for (const endpoint of calendarEndpoints) {
+        try {
+          addDebug(`🔄 Trying calendar endpoint: ${endpoint}`);
+          
+          const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${userData.accessToken || userData.token}`,
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache'
+            },
+          });
 
-      if (!response.ok) {
-        throw new Error(`Calendar API failed: ${response.status} ${response.statusText}`);
+          if (response.ok) {
+            const data = await response.json();
+            events = data.events || data.items || data || [];
+            addDebug(`✅ Loaded ${events.length} events via ${endpoint}`);
+            eventsLoaded = true;
+            break;
+          } else {
+            addDebug(`❌ ${endpoint} failed: ${response.status}`);
+          }
+        } catch (endpointError) {
+          addDebug(`❌ ${endpoint} error: ${endpointError.message}`);
+          continue;
+        }
       }
 
-      const data = await response.json();
-      const events = data.events || data.items || data || [];
+      if (!eventsLoaded) {
+        throw new Error('All calendar endpoints failed');
+      }
+      
       setCalendarEvents(events);
-      addDebug(`✅ Loaded ${events.length} calendar events from backend`);
       
     } catch (error) {
       addDebug(`❌ Backend calendar fetch failed: ${error.message}`);
@@ -251,7 +326,7 @@ function App() {
         await fetchCalendarEventsDirect(userData.accessToken);
       } else {
         addDebug('❌ No valid access token for direct API call');
-        throw new Error('Failed to load calendar events from both backend and direct API');
+        addDebug('💡 Tip: Backend is online but calendar endpoints may need configuration');
       }
     } finally {
       setIsLoadingEvents(false);
