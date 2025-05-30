@@ -1,10 +1,7 @@
-
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { signIn, signUp } from "../firebase/auth";
-import { auth } from "../firebase";
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { oauth } from '../config/oauth';
 import { Calendar, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 
 export default function AuthForm() {
@@ -58,22 +55,10 @@ export default function AuthForm() {
     setError("");
     
     try {
-      const provider = new GoogleAuthProvider();
-      provider.addScope('https://www.googleapis.com/auth/calendar');
-      provider.addScope('https://www.googleapis.com/auth/calendar.events');
-      
-      await signInWithPopup(auth, provider);
-      console.log("Google sign in successful!");
-      navigate('/dashboard');
+      await oauth.loginWithGoogle();
     } catch (err) {
       console.error('Google sign in error:', err);
-      if (err.code === 'auth/popup-closed-by-user') {
-        setError('Sign in was cancelled. Please try again.');
-      } else if (err.code === 'auth/popup-blocked') {
-        setError('Popup was blocked. Please allow popups and try again.');
-      } else {
-        setError('Google sign in failed. Please try again.');
-      }
+      setError('Google sign in failed. Please try again.');
     } finally {
       setLoading(false);
     }
