@@ -51,6 +51,7 @@ export default function AuthForm() {
   };
 
   const handleGoogleSignIn = async () => {
+    console.log("BUTTON CLICKED!"); // Debug line
     setLoading(true);
     setError("");
     
