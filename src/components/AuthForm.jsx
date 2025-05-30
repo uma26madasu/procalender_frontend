@@ -31,7 +31,6 @@ export default function AuthForm() {
       }
     } catch (err) {
       console.error('Auth error:', err);
-      // Better error messages
       if (err.code === 'auth/user-not-found') {
         setError('No account found with this email address.');
       } else if (err.code === 'auth/wrong-password') {

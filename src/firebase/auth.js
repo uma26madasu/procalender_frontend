@@ -1,6 +1,11 @@
-// src/firebase/auth.js - Quick Fix Version
 import { initializeApp } from 'firebase/app';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged 
+} from 'firebase/auth';
 import { useState, useEffect } from 'react';
 
 const firebaseConfig = {
@@ -14,6 +19,19 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+
+// Email/password auth functions only
+export const signIn = async (email, password) => {
+  return await signInWithEmailAndPassword(auth, email, password);
+};
+
+export const signUp = async (email, password) => {
+  return await createUserWithEmailAndPassword(auth, email, password);
+};
+
+export const logout = async () => {
+  return await signOut(auth);
+};
 
 // Simple useAuth hook
 export const useAuth = () => {

@@ -16,16 +16,14 @@ const firebaseConfig = {
 // Prevent duplicate app initialization
 let app;
 try {
-  // Check if Firebase app already exists
   app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
   console.log('✅ Firebase initialized successfully');
 } catch (error) {
   console.error('❌ Firebase initialization error:', error);
-  // If there's still an error, try to get the existing app
   app = getApp();
 }
 
-// Initialize Firebase services
+// Initialize Firebase services (NO GOOGLE OAUTH)
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
