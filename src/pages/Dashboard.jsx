@@ -1,4 +1,4 @@
-// src/pages/Dashboard.jsx - COMPLETE WORKING VERSION
+// src/pages/Dashboard.jsx - COMPLETE WORKING VERSION WITH DIRECT BACKEND CALL
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Users, RefreshCw, Link, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -143,13 +143,42 @@ const Dashboard = () => {
     });
   };
 
-  // Connect Google Calendar
+  // Connect Google Calendar - FIXED VERSION WITH DIRECT BACKEND CALL
   const handleConnectCalendar = async () => {
     try {
       setLoading(true);
       showNotification('Connecting to Google Calendar...', 'info');
-      await googleCalendarService.initializeGoogleAuth();
-      // The page will redirect, so we don't need to do anything else
+      
+      // Get Firebase auth token
+      const currentUser = useAuth().currentUser;
+      let authHeaders = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (currentUser) {
+        try {
+          const token = await currentUser.getIdToken();
+          authHeaders.Authorization = `Bearer ${token}`;
+        } catch (error) {
+          console.error('Error getting Firebase ID token:', error);
+        }
+      }
+      
+      // Direct backend call - bypass service
+      const response = await fetch('https://procalender-backend.onrender.com/api/auth/google/url', {
+        method: 'GET',
+        headers: authHeaders,
+        credentials: 'include'
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.url) {
+        console.log('✅ Redirecting to Google OAuth...');
+        window.location.href = data.url;
+      } else {
+        throw new Error('Failed to get OAuth URL from backend');
+      }
     } catch (error) {
       console.error('Error connecting Google Calendar:', error);
       showNotification('Failed to connect Google Calendar. Please try again.', 'error');
