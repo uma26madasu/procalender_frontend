@@ -5,6 +5,7 @@ import { oauth } from '../config/oauth';
 import { Calendar, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 
 export default function AuthForm() {
+  console.log("NEW AUTHFORM LOADED!"); 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
