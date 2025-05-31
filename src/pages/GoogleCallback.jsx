@@ -1,4 +1,4 @@
-// src/pages/GoogleCallback.jsx
+// src/pages/GoogleCallback.jsx - COMPLETE WORKING VERSION
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -7,50 +7,75 @@ export default function GoogleCallback() {
   const location = useLocation();
 
   useEffect(() => {
-    // This page handles the redirect FROM your backend after OAuth
-    // The backend should redirect here with query parameters
-    const searchParams = new URLSearchParams(location.search);
-    const connected = searchParams.get('connected');
-    const email = searchParams.get('email');
-    const error = searchParams.get('error');
-    const details = searchParams.get('details');
-
-    if (connected === 'true' && email) {
-      // Successfully connected - redirect to dashboard with success message
-      navigate('/dashboard', { 
-        state: { 
-          message: `Google Calendar connected successfully for ${decodeURIComponent(email)}!`,
-          type: 'success'
-        } 
-      });
-    } else if (error) {
-      // Error occurred - redirect to dashboard with error message
-      const errorMessage = details 
-        ? `Failed to connect Google Calendar: ${decodeURIComponent(details)}`
-        : 'Failed to connect Google Calendar. Please try again.';
+    const handleCallback = () => {
+      // Parse URL parameters
+      const searchParams = new URLSearchParams(location.search);
       
-      navigate('/dashboard', { 
-        state: { 
-          message: errorMessage,
-          type: 'error'
-        } 
+      // Get all possible parameters from backend redirect
+      const success = searchParams.get('success');
+      const error = searchParams.get('error');
+      const message = searchParams.get('message');
+      const type = searchParams.get('type');
+      const email = searchParams.get('email');
+      
+      console.log('Callback parameters:', {
+        success,
+        error,
+        message,
+        type,
+        email
       });
-    } else {
-      // No parameters - something went wrong
-      navigate('/dashboard', { 
-        state: { 
-          message: 'Something went wrong with the Google Calendar connection.',
-          type: 'error'
-        } 
-      });
-    }
+
+      // Determine outcome and redirect to dashboard
+      if (success === 'true' || (!error && message)) {
+        // Success case
+        const successMessage = message 
+          ? decodeURIComponent(message)
+          : email 
+            ? `Google Calendar connected successfully for ${decodeURIComponent(email)}!`
+            : 'Google Calendar connected successfully!';
+            
+        navigate('/dashboard', {
+          state: {
+            message: successMessage,
+            type: 'success'
+          }
+        });
+      } else if (error) {
+        // Error case
+        const errorMessage = message 
+          ? decodeURIComponent(message)
+          : `Connection failed: ${decodeURIComponent(error)}`;
+          
+        navigate('/dashboard', {
+          state: {
+            message: errorMessage,
+            type: 'error'
+          }
+        });
+      } else {
+        // Fallback case - no clear success or error
+        navigate('/dashboard', {
+          state: {
+            message: 'Google Calendar connection completed',
+            type: 'info'
+          }
+        });
+      }
+    };
+
+    // Small delay to ensure proper rendering
+    const timeoutId = setTimeout(handleCallback, 500);
+    
+    return () => clearTimeout(timeoutId);
   }, [navigate, location]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
         <p className="mt-4 text-gray-600">Completing Google Calendar connection...</p>
+        <p className="mt-2 text-sm text-gray-500">Please wait while we finalize your connection.</p>
       </div>
     </div>
   );

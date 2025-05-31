@@ -1,7 +1,7 @@
-// src/contexts/CalendarContext.jsx
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'; // Added useCallback
+// src/contexts/CalendarContext.jsx - COMPLETE WORKING VERSION
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
-import googleCalendarService from '../services/calendar/googleCalendar'; // Renamed import to be consistent with file name
+import googleCalendarService from '../services/calendar/googleCalendar';
 
 const CalendarContext = createContext();
 
@@ -14,100 +14,125 @@ export const useCalendar = () => {
 };
 
 export const CalendarProvider = ({ children }) => {
-  const { currentUser } = useAuth(); // Use currentUser as it's from AuthContext
+  const { currentUser } = useAuth();
+  
+  // States
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState([]);
-  const [calendarEmail, setCalendarEmail] = useState(''); // Keep this if you want to display the email
+  const [calendarEmail, setCalendarEmail] = useState('');
+  const [error, setError] = useState(null);
 
-  // Use useCallback to memoize the function and prevent unnecessary re-renders/loops
+  // Check calendar connection
   const checkCalendarConnection = useCallback(async () => {
+    if (!currentUser) {
+      setLoading(false);
+      setIsConnected(false);
+      setCalendarEmail('');
+      setEvents([]);
+      return;
+    }
+
     setLoading(true);
+    setError(null);
+    
     try {
-      // CORRECTED: Call without email parameter
       const status = await googleCalendarService.checkConnectionStatus();
       setIsConnected(status.connected);
+      setCalendarEmail(status.email || '');
+      
       if (status.connected) {
-        setCalendarEmail(status.email); // Set the email returned from the backend
-        await fetchEvents(); // Fetch events if connected
+        await fetchEvents();
       } else {
-        setEvents([]); // Clear events if not connected
-        setCalendarEmail(''); // Clear email
+        setEvents([]);
       }
     } catch (error) {
       console.error('Error checking calendar connection:', error);
       setIsConnected(false);
-      setEvents([]);
       setCalendarEmail('');
+      setEvents([]);
+      setError('Failed to check calendar connection');
     } finally {
       setLoading(false);
     }
-  }, []); // Empty dependency array means this function is created once
+  }, [currentUser]);
 
+  // Fetch events
   const fetchEvents = useCallback(async () => {
-    if (!isConnected) return []; // Don't fetch if not connected
+    if (!isConnected) return [];
+    
     try {
       const start = new Date();
       const end = new Date();
-      end.setFullYear(end.getFullYear() + 1); // Fetch for the next year
+      end.setFullYear(end.getFullYear() + 1);
 
       const fetchedEvents = await googleCalendarService.getEvents({
         startDate: start.toISOString(),
         endDate: end.toISOString(),
-        maxResults: 100 // Or whatever limit you need
+        maxResults: 100
       });
+      
       setEvents(fetchedEvents);
+      setError(null);
       return fetchedEvents;
     } catch (error) {
-      console.error('Error fetching events in CalendarContext:', error);
-      setEvents([]); // Clear events on error
-      // Potentially handle reconnection prompt if error.response.data.reconnect is true
-      if (error.response && error.response.data && error.response.data.reconnect) {
-         setIsConnected(false); // Indicate disconnection
-         setCalendarEmail(''); // Clear email
+      console.error('Error fetching events:', error);
+      setEvents([]);
+      
+      if (error.message === 'RECONNECT_REQUIRED') {
+        setIsConnected(false);
+        setCalendarEmail('');
+        setError('Calendar connection expired. Please reconnect.');
+      } else {
+        setError('Failed to fetch events');
       }
+      
       return [];
     }
-  }, [isConnected]); // Depends on isConnected state
+  }, [isConnected]);
 
+  // Initialize connection check
   useEffect(() => {
-    if (currentUser) {
-      checkCalendarConnection();
-    } else {
-      setLoading(false);
-      setIsConnected(false);
-      setCalendarEmail('');
-      setEvents([]); // Clear events if no user
-    }
-  }, [currentUser, checkCalendarConnection]); // Added checkCalendarConnection to dependencies
+    checkCalendarConnection();
+  }, [checkCalendarConnection]);
 
+  // Connect calendar
   const connectCalendar = async () => {
     try {
+      setError(null);
       await googleCalendarService.initializeGoogleAuth();
-      // The redirect will handle the rest
+      // Redirect will happen, so we don't need to update state here
     } catch (error) {
       console.error('Error connecting Google Calendar:', error);
-      throw error; // Propagate for UI to handle
+      setError('Failed to connect Google Calendar');
+      throw error;
     }
   };
 
+  // Disconnect calendar
   const disconnectCalendar = async () => {
     try {
+      setError(null);
       const success = await googleCalendarService.disconnect();
+      
       if (success) {
         setIsConnected(false);
         setCalendarEmail('');
         setEvents([]);
       }
+      
       return success;
     } catch (error) {
       console.error('Error disconnecting Google Calendar:', error);
+      setError('Failed to disconnect Google Calendar');
       throw error;
     }
   };
 
+  // Get today's meetings
   const getTodaysMeetings = useCallback(async () => {
     if (!isConnected) return [];
+    
     try {
       return await googleCalendarService.getTodaysMeetings();
     } catch (error) {
@@ -116,8 +141,10 @@ export const CalendarProvider = ({ children }) => {
     }
   }, [isConnected]);
 
+  // Get week's meetings
   const getWeekMeetings = useCallback(async () => {
     if (!isConnected) return [];
+    
     try {
       return await googleCalendarService.getWeekMeetings();
     } catch (error) {
@@ -126,56 +153,71 @@ export const CalendarProvider = ({ children }) => {
     }
   }, [isConnected]);
 
+  // Create event
   const createEvent = async (eventDetails) => {
+    if (!isConnected) {
+      throw new Error('Calendar not connected');
+    }
+    
     try {
-      if (!isConnected) {
-        throw new Error('Calendar not connected');
-      }
+      setError(null);
       const createdEvent = await googleCalendarService.createEvent(eventDetails);
-      await fetchEvents(); // Refresh events after creation
+      await fetchEvents(); // Refresh events
       return createdEvent;
     } catch (error) {
       console.error('Error creating event:', error);
+      setError('Failed to create event');
       throw error;
     }
   };
 
+  // Update event
   const updateEvent = async (eventId, updates) => {
+    if (!isConnected) {
+      throw new Error('Calendar not connected');
+    }
+    
     try {
-      if (!isConnected) {
-        throw new Error('Calendar not connected');
-      }
-      // This will call the confirmEvent on the backend
+      setError(null);
       const updatedEvent = await googleCalendarService.updateEvent(eventId, updates);
       await fetchEvents(); // Refresh events
       return updatedEvent;
     } catch (error) {
       console.error('Error updating event:', error);
+      setError('Failed to update event');
       throw error;
     }
   };
 
+  // Delete event
   const deleteEvent = async (eventId) => {
+    if (!isConnected) {
+      throw new Error('Calendar not connected');
+    }
+    
     try {
-      if (!isConnected) {
-        throw new Error('Calendar not connected');
-      }
+      setError(null);
       const success = await googleCalendarService.deleteEvent(eventId);
+      
       if (success) {
         await fetchEvents(); // Refresh events
       }
+      
       return success;
     } catch (error) {
       console.error('Error deleting event:', error);
+      setError('Failed to delete event');
       return false;
     }
   };
 
+  // Check conflicts
   const checkConflicts = async (startTime, endTime) => {
+    if (!isConnected) {
+      return { hasConflicts: false, conflicts: [] };
+    }
+    
     try {
-      if (!isConnected) {
-        return { hasConflicts: false, conflicts: [] };
-      }
       return await googleCalendarService.checkConflicts(startTime, endTime);
     } catch (error) {
       console.error('Error checking conflicts:', error);
@@ -183,11 +225,25 @@ export const CalendarProvider = ({ children }) => {
     }
   };
 
+  // Refresh all data
+  const refresh = async () => {
+    await checkCalendarConnection();
+  };
+
+  // Clear error
+  const clearError = () => {
+    setError(null);
+  };
+
   const value = {
+    // State
     isConnected,
     loading,
     events,
     calendarEmail,
+    error,
+    
+    // Actions
     connectCalendar,
     disconnectCalendar,
     fetchEvents,
@@ -197,6 +253,8 @@ export const CalendarProvider = ({ children }) => {
     updateEvent,
     deleteEvent,
     checkConflicts,
+    refresh,
+    clearError,
   };
 
   return (

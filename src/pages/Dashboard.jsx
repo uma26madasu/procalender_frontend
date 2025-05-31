@@ -1,17 +1,15 @@
-// src/pages/Dashboard.jsx
+// src/pages/Dashboard.jsx - COMPLETE WORKING VERSION
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Users, Plus, RefreshCw, Link, CheckCircle, XCircle } from 'lucide-react';
+import { Calendar, Clock, Users, RefreshCw, Link, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocation } from 'react-router-dom';
-import axios from 'axios';
-import googleCalendarService from '../services/calendar/googleCalendar'; // Use the service
-
-// Use Vite environment variables
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://procalender-backend.onrender.com';
+import googleCalendarService from '../services/calendar/googleCalendar';
 
 const Dashboard = () => {
   const { currentUser } = useAuth();
   const location = useLocation();
+  
+  // States
   const [loading, setLoading] = useState(true);
   const [isCalendarConnected, setIsCalendarConnected] = useState(false);
   const [events, setEvents] = useState([]);
@@ -21,136 +19,167 @@ const Dashboard = () => {
     totalSlots: 0
   });
   const [refreshing, setRefreshing] = useState(false);
+  const [notification, setNotification] = useState(null);
 
+  // Show notification function
+  const showNotification = (message, type = 'info') => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 5000);
+  };
+
+  // Check for URL params messages
   useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const message = urlParams.get('message');
+    const type = urlParams.get('type');
+    
+    if (message) {
+      showNotification(decodeURIComponent(message), type || 'info');
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     if (location.state?.message) {
       showNotification(location.state.message, location.state.type || 'info');
       window.history.replaceState({}, document.title);
     }
+  }, [location]);
 
-    if (currentUser) { // Only check connection if a user is logged in
+  // Initialize dashboard
+  useEffect(() => {
+    if (currentUser) {
       checkCalendarConnection();
     } else {
-      setLoading(false); // If no user, not connected and not loading
+      setLoading(false);
       setIsCalendarConnected(false);
     }
-  }, [currentUser, location]);
+  }, [currentUser]);
 
-  const showNotification = (message, type) => { /* ... */ };
-
+  // Check calendar connection status
   const checkCalendarConnection = async () => {
     setLoading(true);
     try {
-      // CORRECTED: Call without email parameter
       const status = await googleCalendarService.checkConnectionStatus();
       setIsCalendarConnected(status.connected);
+      
       if (status.connected) {
-        // You can use status.email here if you want to display it
-        // setCalendarEmail(status.email); // If you have a state for this
-        fetchAndSetEvents();
+        await fetchAndSetEvents();
       } else {
-        setEvents([]); // Clear events if not connected
+        setEvents([]);
+        setStats({ todayMeetings: 0, weekMeetings: 0, totalSlots: 0 });
       }
     } catch (error) {
       console.error('Error checking calendar connection:', error);
       setIsCalendarConnected(false);
       setEvents([]);
-      showNotification('Failed to check calendar connection. Please try again.', 'error');
+      showNotification('Failed to check calendar connection', 'error');
     } finally {
       setLoading(false);
     }
   };
 
+  // Fetch events and update stats
   const fetchAndSetEvents = async () => {
     setRefreshing(true);
     try {
+      // Get events for the next year
       const start = new Date();
       const end = new Date();
-      end.setFullYear(end.getFullYear() + 1); // Fetch for the next year
+      end.setFullYear(end.getFullYear() + 1);
 
       const fetchedEvents = await googleCalendarService.getEvents({
         startDate: start.toISOString(),
         endDate: end.toISOString(),
-        maxResults: 100 // Or whatever limit you need
+        maxResults: 100
       });
+
       setEvents(fetchedEvents);
-
-      // Update stats based on fetched events
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(today);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay());
-      startOfWeek.setHours(0, 0, 0, 0);
-      const endOfWeek = new Date(today);
-      endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
-      endOfWeek.setHours(23, 59, 59, 999);
-
-      const todayMeetings = fetchedEvents.filter(event => {
-        const eventStart = new Date(event.start?.dateTime || event.start?.date);
-        return eventStart >= today && eventStart <= endOfDay;
-      }).length;
-
-      const weekMeetings = fetchedEvents.filter(event => {
-        const eventStart = new Date(event.start?.dateTime || event.start?.date);
-        return eventStart >= startOfWeek && eventStart <= endOfWeek;
-      }).length;
-
-      setStats({
-        todayMeetings,
-        weekMeetings,
-        totalSlots: 0 // You need logic to calculate totalSlots if applicable
-      });
+      updateStats(fetchedEvents);
 
     } catch (error) {
       console.error('Error fetching events:', error);
-      setEvents([]);
-      if (error.response && error.response.data && error.response.data.reconnect) {
+      
+      if (error.message === 'RECONNECT_REQUIRED') {
         showNotification('Google Calendar connection expired. Please reconnect.', 'error');
-        setIsCalendarConnected(false); // Indicate disconnection
+        setIsCalendarConnected(false);
       } else {
-        showNotification('Failed to fetch events.', 'error');
+        showNotification('Failed to fetch events', 'error');
       }
+      
+      setEvents([]);
     } finally {
       setRefreshing(false);
     }
   };
 
+  // Update statistics based on events
+  const updateStats = (eventsList) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(today);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(today);
+    endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const todayMeetings = eventsList.filter(event => {
+      const eventStart = new Date(event.start?.dateTime || event.start?.date);
+      return eventStart >= today && eventStart <= endOfDay;
+    }).length;
+
+    const weekMeetings = eventsList.filter(event => {
+      const eventStart = new Date(event.start?.dateTime || event.start?.date);
+      return eventStart >= startOfWeek && eventStart <= endOfWeek;
+    }).length;
+
+    setStats({
+      todayMeetings,
+      weekMeetings,
+      totalSlots: 0 // Implement this based on your needs
+    });
+  };
+
+  // Connect Google Calendar
   const handleConnectCalendar = async () => {
     try {
       setLoading(true);
+      showNotification('Connecting to Google Calendar...', 'info');
       await googleCalendarService.initializeGoogleAuth();
-      // The redirect will handle the rest
+      // The page will redirect, so we don't need to do anything else
     } catch (error) {
       console.error('Error connecting Google Calendar:', error);
-      showNotification('Failed to initiate Google Calendar connection.', 'error');
+      showNotification('Failed to connect Google Calendar. Please try again.', 'error');
       setLoading(false);
     }
   };
 
+  // Disconnect Google Calendar
   const handleDisconnectCalendar = async () => {
     try {
       setLoading(true);
       const success = await googleCalendarService.disconnect();
+      
       if (success) {
         setIsCalendarConnected(false);
         setEvents([]);
         setStats({ todayMeetings: 0, weekMeetings: 0, totalSlots: 0 });
-        showNotification('Google Calendar disconnected successfully.', 'success');
+        showNotification('Google Calendar disconnected successfully', 'success');
       } else {
-        showNotification('Failed to disconnect Google Calendar.', 'error');
+        showNotification('Failed to disconnect Google Calendar', 'error');
       }
     } catch (error) {
       console.error('Error disconnecting Google Calendar:', error);
-      showNotification('An error occurred during disconnection.', 'error');
+      showNotification('An error occurred during disconnection', 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // Helper for formatting dates and times
+  // Format helper functions
   const formatEventDate = (dateTime) => {
     if (!dateTime) return 'N/A';
     const date = new Date(dateTime);
@@ -176,6 +205,17 @@ const Dashboard = () => {
       <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-4xl">
         <h2 className="text-3xl font-bold text-gray-800 mb-6 text-center">Dashboard</h2>
 
+        {/* Notification */}
+        {notification && (
+          <div className={`mb-6 p-4 rounded-lg ${
+            notification.type === 'success' ? 'bg-green-100 text-green-800 border border-green-300' :
+            notification.type === 'error' ? 'bg-red-100 text-red-800 border border-red-300' :
+            'bg-blue-100 text-blue-800 border border-blue-300'
+          }`}>
+            {notification.message}
+          </div>
+        )}
+
         {/* Connection Status Section */}
         <div className="mb-8 p-4 bg-gray-50 rounded-lg shadow-inner">
           <h3 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
@@ -183,7 +223,9 @@ const Dashboard = () => {
             Google Calendar Connection
           </h3>
           <div className="flex items-center justify-between">
-            <span className={`text-lg font-medium flex items-center ${isCalendarConnected ? 'text-green-600' : 'text-red-600'}`}>
+            <span className={`text-lg font-medium flex items-center ${
+              isCalendarConnected ? 'text-green-600' : 'text-red-600'
+            }`}>
               {loading ? (
                 <>
                   <RefreshCw className="h-5 w-5 mr-2 animate-spin" /> Checking status...
@@ -226,7 +268,8 @@ const Dashboard = () => {
                 className="mt-2 px-3 py-1 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition duration-150 flex items-center"
                 disabled={refreshing}
               >
-                <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} /> Refresh Events
+                <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} /> 
+                Refresh Events
               </button>
             </div>
           )}
@@ -251,38 +294,48 @@ const Dashboard = () => {
         {/* Upcoming Events List */}
         <div>
           <h3 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-            <Calendar className="h-6 w-6 mr-2 text-indigo-600" /> Upcoming Calendar Events
+            <Calendar className="h-6 w-6 mr-2 text-indigo-600" /> 
+            Upcoming Calendar Events
           </h3>
           {loading ? (
-            <p className="text-gray-600">Loading events...</p>
+            <div className="flex items-center justify-center p-8">
+              <RefreshCw className="h-8 w-8 animate-spin text-indigo-600" />
+              <span className="ml-2 text-gray-600">Loading events...</span>
+            </div>
           ) : events.length === 0 ? (
-            <p className="text-gray-600">No upcoming events found or calendar not connected.</p>
+            <p className="text-gray-600 text-center p-8">
+              {isCalendarConnected ? 'No upcoming events found.' : 'Connect your calendar to see events.'}
+            </p>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-96 overflow-y-auto">
               {events.map((event) => (
-                <div key={event.id} className="bg-white p-4 rounded-lg shadow border border-gray-200 flex items-center justify-between">
-                  <div className="flex-1">
-                    <h4 className="text-lg font-semibold text-gray-800">{event.summary || 'No Title'}</h4>
-                    {event.location && (
-                      <p className="text-sm text-gray-600 mt-1">Location: {event.location}</p>
-                    )}
-                    <div className="mt-2 text-gray-600">
-                      <div className="flex items-center text-sm">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        <span>{formatEventDate(event.start?.dateTime || event.start?.date)}</span>
-                        <span className="mx-2">•</span>
-                        <Clock className="h-4 w-4 mr-1" />
-                        <span>
-                          {formatEventTime(event.start?.dateTime || event.start?.date)} -
-                          {formatEventTime(event.end?.dateTime || event.end?.date)}
-                        </span>
-                      </div>
-                      {event.attendees && event.attendees.length > 0 && (
-                        <div className="mt-1 flex items-center text-sm text-gray-500">
-                          <Users className="h-4 w-4 mr-1" />
-                          <span>{event.attendees.length} attendee(s)</span>
-                        </div>
+                <div key={event.id} className="bg-white p-4 rounded-lg shadow border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h4 className="text-lg font-semibold text-gray-800">
+                        {event.summary || 'No Title'}
+                      </h4>
+                      {event.location && (
+                        <p className="text-sm text-gray-600 mt-1">📍 {event.location}</p>
                       )}
+                      <div className="mt-2 text-gray-600">
+                        <div className="flex items-center text-sm">
+                          <Calendar className="h-4 w-4 mr-1" />
+                          <span>{formatEventDate(event.start?.dateTime || event.start?.date)}</span>
+                          <span className="mx-2">•</span>
+                          <Clock className="h-4 w-4 mr-1" />
+                          <span>
+                            {formatEventTime(event.start?.dateTime || event.start?.date)} - 
+                            {formatEventTime(event.end?.dateTime || event.end?.date)}
+                          </span>
+                        </div>
+                        {event.attendees && event.attendees.length > 0 && (
+                          <div className="mt-1 flex items-center text-sm text-gray-500">
+                            <Users className="h-4 w-4 mr-1" />
+                            <span>{event.attendees.length} attendee(s)</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     {event.htmlLink && (
                       <a
@@ -290,6 +343,7 @@ const Dashboard = () => {
                         target="_blank"
                         rel="noopener noreferrer"
                         className="ml-4 text-blue-600 hover:text-blue-700"
+                        title="Open in Google Calendar"
                       >
                         <Link className="h-4 w-4" />
                       </a>
