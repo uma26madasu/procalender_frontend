@@ -1,4 +1,4 @@
-// src/pages/Dashboard.jsx - COMPLETE WORKING VERSION WITH DIRECT BACKEND CALL
+// src/pages/Dashboard.jsx - COMPLETE ENHANCED VERSION
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Users, RefreshCw, Link, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,6 +20,7 @@ const Dashboard = () => {
   });
   const [refreshing, setRefreshing] = useState(false);
   const [notification, setNotification] = useState(null);
+  const [connectedEmail, setConnectedEmail] = useState(null);
 
   // Show notification function
   const showNotification = (message, type = 'info') => {
@@ -27,13 +28,30 @@ const Dashboard = () => {
     setTimeout(() => setNotification(null), 5000);
   };
 
-  // Check for URL params messages
-  useEffect(() => {
+  // Handle post-OAuth success
+  const handlePostOAuthSuccess = async () => {
     const urlParams = new URLSearchParams(location.search);
+    const email = urlParams.get('email');
     const message = urlParams.get('message');
     const type = urlParams.get('type');
     
-    if (message) {
+    if (email && message?.includes('connected successfully')) {
+      // Store user email for future API calls
+      localStorage.setItem('connectedEmail', email);
+      setConnectedEmail(email);
+      
+      // Update connection status
+      setIsCalendarConnected(true);
+      
+      // Show success notification
+      showNotification(`✅ ${decodeURIComponent(message)}`, 'success');
+      
+      // Immediately fetch events for the connected account
+      await fetchEventsWithEmail(email);
+      
+      // Clean up URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (message) {
       showNotification(decodeURIComponent(message), type || 'info');
       // Clean URL
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -43,7 +61,12 @@ const Dashboard = () => {
       showNotification(location.state.message, location.state.type || 'info');
       window.history.replaceState({}, document.title);
     }
-  }, [location]);
+  };
+
+  // Check for URL params messages and handle OAuth success
+  useEffect(() => {
+    handlePostOAuthSuccess();
+  }, [location.search]);
 
   // Initialize dashboard
   useEffect(() => {
@@ -59,14 +82,35 @@ const Dashboard = () => {
   const checkCalendarConnection = async () => {
     setLoading(true);
     try {
-      const status = await googleCalendarService.checkConnectionStatus();
-      setIsCalendarConnected(status.connected);
-      
-      if (status.connected) {
-        await fetchAndSetEvents();
+      // First check if we have stored email
+      const storedEmail = localStorage.getItem('connectedEmail');
+      if (storedEmail) {
+        setConnectedEmail(storedEmail);
+        
+        // Verify connection with backend
+        const response = await fetch(`https://procalender-backend.onrender.com/api/auth/google/status?email=${encodeURIComponent(storedEmail)}`);
+        const data = await response.json();
+        
+        if (data.connected) {
+          setIsCalendarConnected(true);
+          await fetchEventsWithEmail(storedEmail);
+        } else {
+          // Clear invalid stored email
+          localStorage.removeItem('connectedEmail');
+          setConnectedEmail(null);
+          setIsCalendarConnected(false);
+        }
       } else {
-        setEvents([]);
-        setStats({ todayMeetings: 0, weekMeetings: 0, totalSlots: 0 });
+        // Fallback to service check
+        const status = await googleCalendarService.checkConnectionStatus();
+        setIsCalendarConnected(status.connected);
+        
+        if (status.connected) {
+          await fetchAndSetEvents();
+        } else {
+          setEvents([]);
+          setStats({ todayMeetings: 0, weekMeetings: 0, totalSlots: 0 });
+        }
       }
     } catch (error) {
       console.error('Error checking calendar connection:', error);
@@ -78,7 +122,67 @@ const Dashboard = () => {
     }
   };
 
-  // Fetch events and update stats
+  // Enhanced event fetching with specific email
+  const fetchEventsWithEmail = async (userEmail = null) => {
+    setRefreshing(true);
+    try {
+      const email = userEmail || connectedEmail || localStorage.getItem('connectedEmail') || currentUser?.email;
+      
+      if (!email) {
+        throw new Error('No email available for calendar sync');
+      }
+
+      // Get events for the next year with email parameter
+      const start = new Date();
+      const end = new Date();
+      end.setFullYear(end.getFullYear() + 1);
+
+      // Try direct API call first
+      const response = await fetch(`https://procalender-backend.onrender.com/api/calendar/events?email=${encodeURIComponent(email)}&startDate=${start.toISOString()}&endDate=${end.toISOString()}&maxResults=100`, {
+        headers: {
+          'Authorization': `Bearer ${email}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      
+      if (data.success && data.events) {
+        setEvents(data.events);
+        updateStats(data.events);
+        console.log(`✅ Fetched ${data.events.length} events for ${email}`);
+      } else {
+        // Fallback to service method
+        const fetchedEvents = await googleCalendarService.getEvents({
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+          maxResults: 100,
+          email: email
+        });
+        
+        setEvents(fetchedEvents);
+        updateStats(fetchedEvents);
+      }
+
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      
+      if (error.message === 'RECONNECT_REQUIRED' || error.message.includes('unauthorized')) {
+        showNotification('Google Calendar connection expired. Please reconnect.', 'error');
+        setIsCalendarConnected(false);
+        localStorage.removeItem('connectedEmail');
+        setConnectedEmail(null);
+      } else {
+        showNotification('Failed to fetch events: ' + error.message, 'error');
+      }
+      
+      setEvents([]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // Fetch events and update stats (fallback method)
   const fetchAndSetEvents = async () => {
     setRefreshing(true);
     try {
@@ -139,11 +243,11 @@ const Dashboard = () => {
     setStats({
       todayMeetings,
       weekMeetings,
-      totalSlots: 0 // Implement this based on your needs
+      totalSlots: eventsList.length // Total events as available slots
     });
   };
 
-  // Connect Google Calendar - FIXED VERSION WITH DIRECT BACKEND CALL
+  // Connect Google Calendar - ENHANCED VERSION
   const handleConnectCalendar = async () => {
     try {
       setLoading(true);
@@ -164,7 +268,7 @@ const Dashboard = () => {
         }
       }
       
-      // Direct backend call - bypass service
+      // Direct backend call
       const response = await fetch('https://procalender-backend.onrender.com/api/auth/google/url', {
         method: 'GET',
         headers: authHeaders,
@@ -190,21 +294,43 @@ const Dashboard = () => {
   const handleDisconnectCalendar = async () => {
     try {
       setLoading(true);
+      
+      // Clear local storage
+      localStorage.removeItem('connectedEmail');
+      setConnectedEmail(null);
+      
+      // Try service disconnect
       const success = await googleCalendarService.disconnect();
       
-      if (success) {
-        setIsCalendarConnected(false);
-        setEvents([]);
-        setStats({ todayMeetings: 0, weekMeetings: 0, totalSlots: 0 });
-        showNotification('Google Calendar disconnected successfully', 'success');
-      } else {
-        showNotification('Failed to disconnect Google Calendar', 'error');
+      // Also try direct API call if we have email
+      if (connectedEmail) {
+        try {
+          await fetch(`https://procalender-backend.onrender.com/api/auth/google/disconnect?email=${encodeURIComponent(connectedEmail)}`, {
+            method: 'POST'
+          });
+        } catch (error) {
+          console.error('Error with direct disconnect:', error);
+        }
       }
+      
+      setIsCalendarConnected(false);
+      setEvents([]);
+      setStats({ todayMeetings: 0, weekMeetings: 0, totalSlots: 0 });
+      showNotification('Google Calendar disconnected successfully', 'success');
     } catch (error) {
       console.error('Error disconnecting Google Calendar:', error);
       showNotification('An error occurred during disconnection', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle refresh events
+  const handleRefreshEvents = () => {
+    if (connectedEmail || localStorage.getItem('connectedEmail')) {
+      fetchEventsWithEmail();
+    } else {
+      fetchAndSetEvents();
     }
   };
 
@@ -229,6 +355,46 @@ const Dashboard = () => {
     });
   };
 
+  // Debug function for testing (available in browser console)
+  React.useEffect(() => {
+    window.testCalendarConnection = async () => {
+      const email = connectedEmail || localStorage.getItem('connectedEmail') || 'umamadasu@gmail.com';
+      
+      try {
+        console.log(`🧪 Testing connection for: ${email}`);
+        
+        // Test auth status
+        const authResponse = await fetch(`https://procalender-backend.onrender.com/api/auth/google/status?email=${encodeURIComponent(email)}`);
+        const authData = await authResponse.json();
+        console.log('🔐 Auth Status:', authData);
+        
+        // Test events fetch
+        const eventsResponse = await fetch(`https://procalender-backend.onrender.com/api/calendar/events?email=${encodeURIComponent(email)}`, {
+          headers: {
+            'Authorization': `Bearer ${email}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        const eventsData = await eventsResponse.json();
+        console.log('📅 Events Data:', eventsData);
+        
+        return { auth: authData, events: eventsData };
+      } catch (error) {
+        console.error('❌ Test failed:', error);
+        return { error: error.message };
+      }
+    };
+
+    // Make current state available for debugging
+    window.dashboardState = {
+      loading,
+      isCalendarConnected,
+      connectedEmail,
+      eventsCount: events.length,
+      stats
+    };
+  }, [loading, isCalendarConnected, connectedEmail, events.length, stats]);
+
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-4xl">
@@ -252,23 +418,30 @@ const Dashboard = () => {
             Google Calendar Connection
           </h3>
           <div className="flex items-center justify-between">
-            <span className={`text-lg font-medium flex items-center ${
-              isCalendarConnected ? 'text-green-600' : 'text-red-600'
-            }`}>
-              {loading ? (
-                <>
-                  <RefreshCw className="h-5 w-5 mr-2 animate-spin" /> Checking status...
-                </>
-              ) : isCalendarConnected ? (
-                <>
-                  <CheckCircle className="h-5 w-5 mr-2" /> Connected
-                </>
-              ) : (
-                <>
-                  <XCircle className="h-5 w-5 mr-2" /> Not Connected
-                </>
+            <div>
+              <span className={`text-lg font-medium flex items-center ${
+                isCalendarConnected ? 'text-green-600' : 'text-red-600'
+              }`}>
+                {loading ? (
+                  <>
+                    <RefreshCw className="h-5 w-5 mr-2 animate-spin" /> Checking status...
+                  </>
+                ) : isCalendarConnected ? (
+                  <>
+                    <CheckCircle className="h-5 w-5 mr-2" /> Connected
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="h-5 w-5 mr-2" /> Not Connected
+                  </>
+                )}
+              </span>
+              {connectedEmail && (
+                <p className="text-sm text-gray-600 mt-1">
+                  📧 {connectedEmail}
+                </p>
               )}
-            </span>
+            </div>
             <div>
               {isCalendarConnected ? (
                 <button
@@ -293,7 +466,7 @@ const Dashboard = () => {
             <div className="mt-4 text-sm text-gray-600">
               <p>Your calendar is connected! Events are shown below.</p>
               <button
-                onClick={fetchAndSetEvents}
+                onClick={handleRefreshEvents}
                 className="mt-2 px-3 py-1 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition duration-150 flex items-center"
                 disabled={refreshing}
               >
@@ -315,7 +488,7 @@ const Dashboard = () => {
             <p className="text-3xl font-bold text-green-600">{stats.weekMeetings}</p>
           </div>
           <div className="bg-yellow-50 p-4 rounded-lg shadow-md text-center">
-            <h4 className="text-lg font-semibold text-yellow-800">Total Available Slots</h4>
+            <h4 className="text-lg font-semibold text-yellow-800">Total Events</h4>
             <p className="text-3xl font-bold text-yellow-600">{stats.totalSlots}</p>
           </div>
         </div>
@@ -325,6 +498,11 @@ const Dashboard = () => {
           <h3 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
             <Calendar className="h-6 w-6 mr-2 text-indigo-600" /> 
             Upcoming Calendar Events
+            {events.length > 0 && (
+              <span className="ml-2 bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full">
+                {events.length} events
+              </span>
+            )}
           </h3>
           {loading ? (
             <div className="flex items-center justify-center p-8">
@@ -383,6 +561,25 @@ const Dashboard = () => {
             </div>
           )}
         </div>
+
+        {/* Debug Info (only in development) */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-8 p-4 bg-gray-100 rounded-lg text-xs">
+            <details>
+              <summary className="cursor-pointer text-gray-600">Debug Info (Dev Only)</summary>
+              <pre className="mt-2 text-gray-500">
+                {JSON.stringify({
+                  loading,
+                  isCalendarConnected,
+                  connectedEmail,
+                  eventsCount: events.length,
+                  stats,
+                  hasStoredEmail: !!localStorage.getItem('connectedEmail')
+                }, null, 2)}
+              </pre>
+            </details>
+          </div>
+        )}
       </div>
     </div>
   );
